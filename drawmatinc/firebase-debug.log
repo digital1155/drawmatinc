@@ -1,0 +1,49 @@
+[debug] [2025-03-20T07:58:45.799Z] ----------------------------------------------------------------------
+[debug] [2025-03-20T07:58:45.801Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\amrit\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy
+[debug] [2025-03-20T07:58:45.802Z] CLI Version:   13.34.0
+[debug] [2025-03-20T07:58:45.802Z] Platform:      win32
+[debug] [2025-03-20T07:58:45.802Z] Node Version:  v22.14.0
+[debug] [2025-03-20T07:58:45.802Z] Time:          Thu Mar 20 2025 13:28:45 GMT+0530 (ਭਾਰਤੀ ਮਿਆਰੀ ਵੇਲਾ)
+[debug] [2025-03-20T07:58:45.802Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-03-20T07:58:46.013Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-03-20T07:58:46.013Z] > authorizing via signed-in user (digitalramuwala@gmail.com)
+[debug] [2025-03-20T07:58:46.013Z] [iam] checking project drawmatinc for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2025-03-20T07:58:46.014Z] Checked if tokens are valid: true, expires at: 1742461079071
+[debug] [2025-03-20T07:58:46.014Z] Checked if tokens are valid: true, expires at: 1742461079071
+[debug] [2025-03-20T07:58:46.015Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/drawmatinc:testIamPermissions [none]
+[debug] [2025-03-20T07:58:46.015Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/drawmatinc:testIamPermissions x-goog-quota-user=projects/drawmatinc
+[debug] [2025-03-20T07:58:46.016Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/drawmatinc:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2025-03-20T07:58:47.644Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/drawmatinc:testIamPermissions 200
+[debug] [2025-03-20T07:58:47.644Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/drawmatinc:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2025-03-20T07:58:47.645Z] Checked if tokens are valid: true, expires at: 1742461079071
+[debug] [2025-03-20T07:58:47.645Z] Checked if tokens are valid: true, expires at: 1742461079071
+[debug] [2025-03-20T07:58:47.645Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/drawmatinc [none]
+[debug] [2025-03-20T07:58:48.132Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/drawmatinc 200
+[debug] [2025-03-20T07:58:48.133Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/drawmatinc {"projectId":"drawmatinc","projectNumber":"439340977550","displayName":"DRAWMATINC","name":"projects/drawmatinc","resources":{"hostingSite":"drawmatinc"},"state":"ACTIVE","etag":"1_0182d080-6fd4-4778-9ed5-3bccf33a8428"}
+[info] 
+[info] === Deploying to 'drawmatinc'...
+[info] 
+[info] i  deploying hosting 
+[debug] [2025-03-20T07:58:48.140Z] Checked if tokens are valid: true, expires at: 1742461079071
+[debug] [2025-03-20T07:58:48.141Z] Checked if tokens are valid: true, expires at: 1742461079071
+[debug] [2025-03-20T07:58:48.141Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/drawmatinc/versions [none]
+[debug] [2025-03-20T07:58:48.141Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/drawmatinc/versions {"status":"CREATED","labels":{"deployment-tool":"cli-firebase"}}
+[debug] [2025-03-20T07:58:49.533Z] <<< [apiv2][status] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/drawmatinc/versions 200
+[debug] [2025-03-20T07:58:49.533Z] <<< [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/drawmatinc/versions {"name":"projects/439340977550/sites/drawmatinc/versions/4ba5fd08a0c6ff9c","status":"CREATED","config":{},"labels":{"deployment-tool":"cli-firebase"}}
+[info] i  hosting[drawmatinc]: beginning deploy... 
+[info] i  hosting[drawmatinc]: found 76954 files in . 
+[debug] [2025-03-20T07:59:04.670Z] [hosting] uploading with 200 concurrency
+[debug] [2025-03-20T07:59:04.671Z] [hosting] hash cache [] not populated
+[debug] [2025-03-20T07:59:04.720Z] Error: EBUSY: resource busy or locked, open 'C:\Users\amrit\NTUSER.DAT'
+[error] 
+[error] Error: An unexpected error has occurred.
+[debug] [2025-03-20T07:59:04.723Z] Error: EBUSY: resource busy or locked, open 'C:\Users\amrit\ntuser.dat.LOG2'
+[error] 
+[error] Error: An unexpected error has occurred.
+[debug] [2025-03-20T07:59:04.724Z] Error: EBUSY: resource busy or locked, open 'C:\Users\amrit\ntuser.dat.LOG1'
+[error] 
+[error] Error: An unexpected error has occurred.
+[debug] [2025-03-20T07:59:04.731Z] Error: EISDIR: illegal operation on a directory, read
+[error] 
+[error] Error: An unexpected error has occurred.
