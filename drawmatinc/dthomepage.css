@@ -1,0 +1,212 @@
+/* Reset and General Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+   }
+   
+   body, html {
+       margin: 0;
+       padding: 0;
+       height: 100%;
+       background: #1a1a1a;
+       color: #fff;
+       font-family: 'Segoe UI', Arial, sans-serif;
+       overflow: auto;
+   }
+   
+   /* Header */
+   header {
+       background: #2c3e50;
+       color: white;
+       padding: 1rem;
+       position: fixed;
+       width: 100%;
+       top: 0;
+       z-index: 0;
+   }
+   
+   nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+   }
+   
+   .logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+   }
+   
+   .menu-toggle {
+    display: none; /* Hidden on desktop */
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+   }
+   
+   .hamburger {
+    display: block;
+    width: 25px;
+    height: 3px;
+    background: white;
+    position: relative;
+   }
+   
+   .hamburger::before,
+   .hamburger::after {
+    content: '';
+    width: 25px;
+    height: 3px;
+    background: white;
+    position: absolute;
+    left: 0;
+   }
+   
+   .hamburger::before {
+    top: -8px;
+   }
+   
+   .hamburger::after {
+    bottom: -8px;
+   }
+   
+   .nav-menu {
+    list-style: none;
+    display: flex;
+    gap: 1rem;
+   }
+   
+   .nav-menu li a {
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
+   }
+   
+   .nav-menu li a:hover {
+    color: #3498db;
+   }
+   
+   /* Hero Section */
+   .hero {
+    background: linear-gradient(to right, #3498db, #2ecc71);
+    color: white;
+    text-align: center;
+    padding: 6rem 2rem;
+    margin-top: 4rem;
+   }
+   
+   .hero h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem ;
+   }
+   
+   .hero p {
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+   }
+   
+   .cta-button {
+    background: #e74c3c;
+    color: white;
+    padding: 1rem 2rem;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: bold;
+   }
+   
+   .cta-button:hover {
+    background: #c0392b;
+   }
+   
+   /* Intro Section */
+   .intro {
+    max-width: 1200px;
+    margin: 4rem auto;
+    padding: 0 2rem;
+   }
+   
+   .intro h2 {
+    margin-bottom: 1.5rem;
+    text-align: center;
+   }
+   
+   .intro p {
+    font-size: 1.1rem;
+    line-height: 1.8;
+   }
+   
+   .intro a {
+    color: #3498db;
+    text-decoration: none;
+   }
+   
+   .intro a:hover {
+    text-decoration: underline;
+   }
+   
+   /* AdSense Placeholder */
+   .adsense-placeholder {
+    max-width: 1200px;
+    margin: 4rem auto;
+    padding: 0 2rem;
+    text-align: center;
+   }
+   
+   .ad-box {
+    background: #ddd;
+    padding: 2rem;
+    border: 1px dashed #999;
+    display: inline-block;
+   }
+   
+   /* Footer */
+   footer {
+    background: #2c3e50;
+    color: white;
+    text-align: center;
+    padding: 1rem;
+   }
+   
+   footer a {
+    color: #3498db;
+    text-decoration: none;
+   }
+   
+   /* Responsive Design */
+   @media (max-width: 768px) {
+    .menu-toggle {
+    display: block; /* Show hamburger on mobile */
+    }
+   
+    .nav-menu {
+    display: none; /* Hidden by default on mobile */
+    flex-direction: column;
+    width: 100%;
+    background: #2c3e50;
+    position: absolute;
+    top: 60px;
+    left: 0;
+    padding: 1rem 0;
+    }
+   
+    .nav-menu.active {
+    display: flex; /* Show when toggled */
+    }
+   
+    .nav-menu li {
+    text-align: center;
+    padding: 0.5rem 0;
+    }
+   
+    .hero h1 {
+    font-size: 2rem;
+    }
+   
+    .hero p {
+    font-size: 1rem;
+    }
+   }

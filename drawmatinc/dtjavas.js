@@ -1,59 +1,626 @@
+// Core Setup and Variables
+const DrawingApp = {
+    canvas: null,
+    ctx: null,
+    persistentCanvas: null,
+    persistentCtx: null,
+    offscreenCanvas: null,
+    offscreenCtx: null,
+    painting: false,
+    lastX: null,
+    lastY: null,
+    brushSize: 10,
+    smoothness: 0.5,
+    opacity: 0.1,
+    webDensity: 3,
+    webSpread: 0.5,
+    webWiggle: 0.1,
+    circleSize: 10,
+    borderWidth: 1,
+    watercolorSpread: 0.5,
+    watercolorBleed: 0.2,
+    wingSize: 30,
+    curlIntensity: 0.5,
+    wingOpacity: 0.3,
+    symmetry: 4,
+    mirrorMode: 'none',
+    spiralMode: 'off',
+    bgColor: '#27362f',
+    bgColor2: '#1a252f',
+    gradientBg: false,
+    transparentBg: false,
+    currentBrush: 'continuousCircle',
+    actions: [],
+    redoStack: [],
+    strokes: [],
+    svgPaths: [], // For SVG export
+    bgImage: null,
+    colors: ['#1df58d'],
+    colorCount: 1,
+    colorImage: null,
+    colorImageCanvas: null,
+    colorImageCtx: null,
+    colorSamplingMethod: 'random',
+    isDrawingStarted: false,
+    lowPerformanceMode: false,
+    spiralSteps: 10,
+    scale: 1, // For pinch-to-zoom
+    initialDistance: 0,
+    initialScale: 1,
+    recording: false, // For MP4
+    mediaRecorder: null,
+    recordedChunks: [],
+    frameRate: 30,
+    gifRecorder: null, // For GIF
+    ASPECT_RATIO: 16 / 9,
+    lastDrawTime: 0,
+    defaultColors: ['#1df58d', '#0000FF', '#FF0000', '#FFFF00', '#00FF00', '#FF00FF', '#00FFFF', '#800080', '#FFA500', '#808080']
+};
 
-document.addEventListener('DOMContentLoaded', () => {
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    let painting = false;
-    let lastX, lastY;
-    let brushSize = 10;
-    let smoothness = 0.5;
-    let opacity = 0.1;
-    let webDensity = 3;
-    let webSpread = 0.5;
-    let webWiggle = 0.1;
-    let circleSize = 10;
-    let borderWidth = 1;
-    let watercolorSpread = 0.5;
-    let watercolorBleed = 0.2;
-    let wingSize = 30;
-    let curlIntensity = 0.5;
-    let wingOpacity = 0.3;
-    let color1 = '#1df58d';
-    let color2 = '#0000FF';
-    let gradientRatio = 0.5; // Kept for UI consistency
-    let symmetry = 4;
-    let mirrorMode = 'none';
-    let spiralMode = 'off';
-    let dualTone = false;
-    let bgColor = '#27362f';
-    let transparentBg = false;
-    let currentBrush = 'continuousCircle';
-    let actions = [];
-    let redoStack = [];
-    let bgImage = null;
-    let colorImage = null;
-    let colorImageCanvas = null;
-    let colorImageCtx = null;
-    let colorSamplingMethod = 'random';
-    let isDrawingStarted = false;
-    let lowPerformanceMode = false;
+// Utility Functions
+function showNotification(message, type = 'error') {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.classList.add('show'), 10);
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 500);
+    }, 3000);
+}
 
-    const persistentCanvas = document.createElement('canvas');
-    const persistentCtx = persistentCanvas.getContext('2d');
-    const offscreenCanvas = document.createElement('canvas');
-    const offscreenCtx = offscreenCanvas.getContext('2d');
+function getTouchDistance(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+}
 
-    const ASPECT_RATIO = 16 / 9;
+function getInternalResolution() {
+    const resolutionSelect = document.getElementById('canvasResolution');
+    const selectedValue = resolutionSelect ? resolutionSelect.value : 'fullhd';
+    switch (selectedValue) {
+        case 'hd': return { width: 1280, height: 720 };
+        case 'fullhd': return { width: 1920, height: 1080 };
+        case '4k': return { width: 3840, height: 2160 };
+        default: return { width: 1920, height: 1080 };
+    }
+}
 
-    function getInternalResolution() {
-        const resolutionSelect = document.getElementById('canvasResolution');
-        const selectedValue = resolutionSelect ? resolutionSelect.value : 'fullhd';
-        switch (selectedValue) {
-            case 'hd': return { width: 1280, height: 720 };
-            case 'fullhd': return { width: 1920, height: 1080 };
-            case '4k': return { width: 3840, height: 2160 };
-            default: return { width: 1920, height: 1080 };
+function getVideoResolution() {
+    const select = document.getElementById('videoResolution');
+    const value = select ? select.value : '1080p';
+    switch (value) {
+        case '720p': return { width: 1280, height: 720 };
+        case '1080p': return { width: 1920, height: 1080 };
+        default: return { width: 1920, height: 1080 };
+    }
+}
+
+// Symmetry and Canvas Setup
+class SymmetryTransformer {
+    constructor(symmetry) {
+        this.symmetry = symmetry;
+        this.matrices = [];
+        for (let i = 0; i < symmetry; i++) {
+            const angle = i * (Math.PI * 2 / symmetry);
+            this.matrices.push({ cos: Math.cos(angle), sin: Math.sin(angle) });
         }
     }
+
+    transform(x, y, dx, dy, centerX, centerY) {
+        const newX = x - centerX;
+        const newY = y - centerY;
+        const transformed = [];
+        for (let matrix of this.matrices) {
+            const rotatedX = newX * matrix.cos - newY * matrix.sin + centerX;
+            const rotatedY = newX * matrix.sin + newY * matrix.cos + centerY;
+            const rotatedDx = dx * matrix.cos - dy * matrix.sin;
+            const rotatedDy = dx * matrix.sin + dy * matrix.cos;
+            transformed.push({ x: rotatedX, y: rotatedY, dx: rotatedDx, dy: rotatedDy });
+        }
+        return transformed;
+    }
+}
+
+function resizeCanvas() {
+    const app = DrawingApp;
+    const toolbar = document.getElementById('toolbar');
+    const isFullscreen = document.fullscreenElement !== null;
+    let tempImageData = null;
+    if (app.persistentCanvas.width > 0 && app.persistentCanvas.height > 0) {
+        tempImageData = app.persistentCtx.getImageData(0, 0, app.persistentCanvas.width, app.persistentCanvas.height);
+    }
+
+    const resolution = getInternalResolution();
+    app.canvas.width = resolution.width;
+    app.canvas.height = resolution.height;
+    app.persistentCanvas.width = resolution.width;
+    app.persistentCanvas.height = resolution.height;
+    app.offscreenCanvas.width = resolution.width;
+    app.offscreenCanvas.height = resolution.height;
+
+    if (isFullscreen) {
+        app.canvas.style.width = '100%';
+        app.canvas.style.height = '100%';
+    } else {
+        const toolbarHeight = toolbar.offsetHeight;
+        const availableWidth = window.innerWidth - 22;
+        const availableHeight = window.innerHeight - toolbarHeight - 22;
+        let displayWidth = availableWidth;
+        let displayHeight = displayWidth / app.ASPECT_RATIO;
+        if (displayHeight > availableHeight) {
+            displayHeight = availableHeight;
+            displayWidth = displayHeight * app.ASPECT_RATIO;
+        }
+        app.canvas.style.width = `${displayWidth}px`;
+        app.canvas.style.height = `${displayHeight}px`;
+    }
+
+    drawBackground(app.persistentCtx);
+    if (tempImageData) app.persistentCtx.putImageData(tempImageData, 0, 0);
+    app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
+    app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
+    app.ctx.drawImage(app.persistentCanvas, 0, 0);
+}
+
+function drawBackground(context) {
+    const app = DrawingApp;
+    if (app.transparentBg) {
+        context.clearRect(0, 0, app.canvas.width, app.canvas.height);
+    } else if (app.bgImage) {
+        context.drawImage(app.bgImage, 0, 0, app.canvas.width, app.canvas.height);
+    } else if (app.gradientBg) {
+        const gradient = context.createLinearGradient(0, 0, app.canvas.width, app.canvas.height);
+        gradient.addColorStop(0, app.bgColor);
+        gradient.addColorStop(1, app.bgColor2);
+        context.fillStyle = gradient;
+        context.fillRect(0, 0, app.canvas.width, app.canvas.height);
+    } else {
+        context.fillStyle = app.bgColor;
+        context.fillRect(0, 0, app.canvas.width, app.canvas.height);
+    }
+}
+
+// Drawing Logic
+function createGradientImage(colors) {
+    if (colors.length === 1) return null;
+    const gradientCanvas = document.createElement('canvas');
+    gradientCanvas.width = 256;
+    gradientCanvas.height = 1;
+    const gradientCtx = gradientCanvas.getContext('2d');
+    const gradient = gradientCtx.createLinearGradient(0, 0, 256, 0);
+    colors.forEach((color, index) => {
+        gradient.addColorStop(index / (colors.length - 1), color);
+    });
+    gradientCtx.fillStyle = gradient;
+    gradientCtx.fillRect(0, 0, 256, 1);
+    return gradientCanvas;
+}
+
+function draw(e) {
+    const app = DrawingApp;
+    e.preventDefault();
+    if (!app.painting || (e.buttons !== 1 && !e.touches)) return;
+    const currentTime = performance.now();
+    if (currentTime - app.lastDrawTime < 16) return;
+    app.lastDrawTime = currentTime;
+
+    const canvasRect = app.canvas.getBoundingClientRect();
+    const resolution = getInternalResolution();
+    const scaleX = resolution.width / canvasRect.width;
+    const scaleY = resolution.height / canvasRect.height;
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+    let currentX = (clientX - canvasRect.left) * scaleX / app.scale;
+    let currentY = (clientY - canvasRect.top) * scaleY / app.scale;
+
+    const pressure = e.pressure !== undefined ? e.pressure : 0.5;
+    const adjustedBrushSize = app.brushSize * (0.2 + 0.8 * pressure);
+    const adjustedCircleSize = app.circleSize * (0.2 + 0.8 * pressure);
+
+    if (!app.isDrawingStarted) {
+        app.isDrawingStarted = true;
+        if (!app.recording) startMP4Recording();
+        if (!app.gifRecorder) startGIFRecording();
+    }
+
+    if (app.lastX !== undefined && app.lastY !== undefined) {
+        const dx = currentX - app.lastX;
+        const dy = currentY - app.lastY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        app.offscreenCtx.clearRect(0, 0, app.offscreenCanvas.width, app.offscreenCanvas.height);
+        app.offscreenCtx.globalCompositeOperation = 'lighter';
+        let pathData = `M ${app.lastX} ${app.lastY} L ${currentX} ${currentY}`;
+        const strokePoints = [];
+        for (let i = 0; i <= distance; i += app.smoothness) {
+            const point = i / distance;
+            const x = app.lastX + dx * point;
+            const y = app.lastY + dy * point;
+            strokePoints.push({ x, y, time: currentTime });
+            drawWithSymmetry(x, y, dx, dy, adjustedBrushSize, adjustedCircleSize);
+        }
+        app.persistentCtx.drawImage(app.offscreenCanvas, 0, 0);
+        app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
+        app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
+        app.ctx.drawImage(app.persistentCanvas, 0, 0);
+        const color = getColor(currentX, currentY);
+        app.strokes.push({ points: strokePoints, brush: app.currentBrush, size: adjustedBrushSize, color, opacity: app.opacity });
+        app.actions.push({ imageData: app.persistentCtx.getImageData(0, 0, app.canvas.width, app.canvas.height), strokes: strokePoints, brush: app.currentBrush, size: adjustedBrushSize, color, opacity: app.opacity });
+        app.redoStack = [];
+        if (app.gifRecorder) app.gifRecorder.addFrame(app.canvas, { copy: true, delay: 33 });
+        if (app.currentBrush !== 'continuousCircle') {
+            app.svgPaths.push(`<path d="${pathData}" stroke="${color}" stroke-width="${adjustedBrushSize}" opacity="${app.opacity}" fill="none"/>`);
+        } else {
+            app.svgPaths.push(`<circle cx="${currentX}" cy="${currentY}" r="${adjustedCircleSize}" fill="none" stroke="${color}" stroke-width="${app.borderWidth}" opacity="${app.opacity}"/>`);
+        }
+    }
+    app.lastX = currentX;
+    app.lastY = currentY;
+}
+
+function drawWithSymmetry(x, y, dx, dy, adjustedBrushSize, adjustedCircleSize) {
+    const app = DrawingApp;
+    const centerX = app.canvas.width / 2;
+    const centerY = app.canvas.height / 2;
+    const transformer = new SymmetryTransformer(app.symmetry);
+    const transformed = transformer.transform(x, y, dx, dy, centerX, centerY);
+    for (let t of transformed) {
+        if (app.spiralMode === 'on') {
+            const distanceFromCenter = Math.sqrt((t.x - centerX) ** 2 + (t.y - centerY) ** 2);
+            const baseAngle = Math.atan2(t.y - centerY, t.x - centerX);
+            const maxRadius = distanceFromCenter;
+            for (let j = 0; j <= app.spiralSteps; j++) {
+                const tSpiral = j / app.spiralSteps;
+                const theta = baseAngle + tSpiral * Math.PI * 2;
+                const r = maxRadius * tSpiral;
+                const spiralX = centerX + r * Math.cos(theta);
+                const spiralY = centerY + r * Math.sin(theta);
+                const spiralDx = t.dx * (1 - tSpiral);
+                const spiralDy = t.dy * (1 - tSpiral);
+                if (spiralX >= 0 && spiralX <= app.canvas.width && spiralY >= 0 && spiralY <= app.canvas.height) {
+                    applyMirrorTransformations(spiralX, spiralY, spiralDx, spiralDy, adjustedBrushSize * (1 - tSpiral), adjustedCircleSize * (1 - tSpiral));
+                }
+            }
+        } else {
+            applyMirrorTransformations(t.x, t.y, t.dx, t.dy, adjustedBrushSize, adjustedCircleSize);
+        }
+    }
+}
+
+function applyMirrorTransformations(x, y, dx, dy, adjustedBrushSize, adjustedCircleSize) {
+    const app = DrawingApp;
+    drawBrush(x, y, dx, dy, adjustedBrushSize, adjustedCircleSize);
+    if (app.mirrorMode === 'horizontal') {
+        drawBrush(x, app.canvas.height - y, dx, -dy, adjustedBrushSize, adjustedCircleSize);
+    } else if (app.mirrorMode === 'vertical') {
+        drawBrush(app.canvas.width - x, y, -dx, dy, adjustedBrushSize, adjustedCircleSize);
+    }
+}
+
+function drawBrush(x, y, dx, dy, adjustedBrushSize, adjustedCircleSize) {
+    const app = DrawingApp;
+    const color = getColor(x, y);
+    switch (app.currentBrush) {
+        case 'web': drawSpiderWeb(app.offscreenCtx, x, y, adjustedBrushSize, color); break;
+        case 'continuousCircle': drawContinuousCircles(app.offscreenCtx, x, y, dx, dy, adjustedCircleSize, color); break;
+        case 'watercolor': drawWatercolor(app.offscreenCtx, x, y, dx, dy, adjustedBrushSize, color); break;
+        case 'curlyWings': drawCurlyWings(app.offscreenCtx, x, y, dx, dy, adjustedBrushSize, color); break;
+    }
+}
+
+function getColor(x, y) {
+    const app = DrawingApp;
+    if (app.colorImageCtx) {
+        let imgX, imgY;
+        switch (app.colorSamplingMethod) {
+            case 'random': imgX = Math.floor(Math.random() * app.colorImageCanvas.width); imgY = Math.floor(Math.random() * app.colorImageCanvas.height); break;
+            case 'spatial': imgX = Math.floor((x / app.canvas.width) * app.colorImageCanvas.width); imgY = Math.floor((y / app.canvas.height) * app.colorImageCanvas.height); break;
+            case 'horizontal': imgX = Math.floor((x / app.canvas.width) * app.colorImageCanvas.width); imgY = 0; break;
+            case 'vertical': imgX = Math.floor(app.colorImageCanvas.width / 2); imgY = Math.floor((y / app.canvas.height) * app.colorImageCanvas.height); break;
+            case 'radial':
+                const centerX = app.canvas.width / 2;
+                const centerY = app.canvas.height / 2;
+                const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+                const maxDistance = Math.sqrt((app.canvas.width / 2) ** 2 + (app.canvas.height / 2) ** 2);
+                const ratio = distance / maxDistance;
+                imgX = Math.floor(ratio * app.colorImageCanvas.width);
+                imgY = 0;
+                break;
+        }
+        imgX = Math.min(Math.max(imgX, 0), app.colorImageCanvas.width - 1);
+        imgY = Math.min(Math.max(imgY, 0), app.colorImageCanvas.height - 1);
+        const pixelData = app.colorImageCtx.getImageData(imgX, imgY, 1, 1).data;
+        return `#${((1 << 24) + (pixelData[0] << 16) + (pixelData[1] << 8) + pixelData[2]).toString(16).slice(1)}`;
+    }
+    return app.colors[0];
+}
+
+function drawSpiderWeb(ctx, x, y, size, color) {
+    const app = DrawingApp;
+    ctx.globalAlpha = app.opacity;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    for (let i = 0; i < app.webDensity; i++) {
+        let angle = Math.random() * Math.PI * 2;
+        let endAngle = angle + (Math.random() - 0.5) * Math.PI * app.webSpread;
+        let radius = size * (Math.random() + 0.5);
+        let points = [];
+        let segments = 10;
+        for (let j = 0; j <= segments; j++) {
+            let t = j / segments;
+            let currentAngle = angle + (endAngle - angle) * t;
+            let wiggle = (Math.random() - 0.5) * size * app.webWiggle;
+            let r = radius * t + wiggle;
+            points.push({ x: x + r * Math.cos(currentAngle), y: y + r * Math.sin(currentAngle) });
+        }
+        ctx.moveTo(x, y);
+        for (let point of points) ctx.lineTo(point.x, point.y);
+    }
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.globalAlpha = 1.0;
+}
+
+function drawContinuousCircles(ctx, x, y, dx, dy, size, color) {
+    const app = DrawingApp;
+    ctx.globalAlpha = app.opacity;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = app.borderWidth;
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1.0;
+}
+
+function drawWatercolor(ctx, x, y, dx, dy, size, color) {
+    const app = DrawingApp;
+    ctx.globalAlpha = app.opacity * 0.5;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, size * app.watercolorSpread, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = app.opacity * app.watercolorBleed;
+    for (let i = 0; i < 5; i++) {
+        const offsetX = (Math.random() - 0.5) * size * app.watercolorSpread;
+        const offsetY = (Math.random() - 0.5) * size * app.watercolorSpread;
+        ctx.beginPath();
+        ctx.arc(x + offsetX, y + offsetY, size * app.watercolorSpread * (0.5 + Math.random() * 0.5), 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    ctx.globalAlpha = 1.0;
+}
+
+function drawCurlyWings(ctx, x, y, dx, dy, size, color) {
+    const app = DrawingApp;
+    ctx.globalAlpha = app.opacity;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + dx, y + dy);
+    ctx.stroke();
+
+    ctx.globalAlpha = app.wingOpacity;
+    const wingCount = 3;
+    const angle = Math.atan2(dy, dx);
+    const perpAngle = angle + Math.PI / 2;
+
+    for (let i = 0; i < wingCount; i++) {
+        let t = i / (wingCount - 1);
+        if (wingCount === 1) t = 0.5;
+        let wingBaseX = x + dx * t;
+        let wingBaseY = y + dy * t;
+
+        ctx.beginPath();
+        ctx.moveTo(wingBaseX, wingBaseY);
+        let controlX1 = wingBaseX + Math.cos(perpAngle) * app.wingSize * 0.3;
+        let controlY1 = wingBaseY + Math.sin(perpAngle) * app.wingSize * 0.3;
+        let controlX2 = wingBaseX - Math.cos(angle + app.curlIntensity) * app.wingSize * 0.7;
+        let controlY2 = wingBaseY - Math.sin(angle + app.curlIntensity) * app.wingSize * 0.7;
+        let endX = wingBaseX - Math.cos(angle + app.curlIntensity * 1.5) * app.wingSize;
+        let endY = wingBaseY - Math.sin(angle + app.curlIntensity * 1.5) * app.wingSize;
+        ctx.bezierCurveTo(controlX1, controlY1, controlX2, controlY2, endX, endY);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(wingBaseX, wingBaseY);
+        controlX1 = wingBaseX - Math.cos(perpAngle) * app.wingSize * 0.3;
+        controlY1 = wingBaseY - Math.sin(perpAngle) * app.wingSize * 0.3;
+        controlX2 = wingBaseX - Math.cos(angle - app.curlIntensity) * app.wingSize * 0.7;
+        controlY2 = wingBaseY - Math.sin(angle - app.curlIntensity) * app.wingSize * 0.7;
+        endX = wingBaseX - Math.cos(angle - app.curlIntensity * 1.5) * app.wingSize;
+        endY = wingBaseY - Math.sin(angle - app.curlIntensity * 1.5) * app.wingSize;
+        ctx.bezierCurveTo(controlX1, controlY1, controlX2, controlY2, endX, endY);
+        ctx.stroke();
+    }
+    ctx.globalAlpha = 1.0;
+}
+
+// Event Listeners and Recording
+function startPosition(e) {
+    const app = DrawingApp;
+    e.preventDefault();
+    const canvasRect = app.canvas.getBoundingClientRect();
+    const resolution = getInternalResolution();
+    const scaleX = resolution.width / canvasRect.width;
+    const scaleY = resolution.height / canvasRect.height;
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+    app.lastX = (clientX - canvasRect.left) * scaleX / app.scale;
+    app.lastY = (clientY - canvasRect.top) * scaleY / app.scale;
+    app.painting = true;
+    if (!app.isDrawingStarted) app.isDrawingStarted = true;
+    app.offscreenCtx.clearRect(0, 0, app.offscreenCanvas.width, app.offscreenCanvas.height);
+    app.ctx.globalCompositeOperation = 'source-over';
+    drawWithSymmetry(app.lastX, app.lastY, 0, 0, app.brushSize, app.circleSize);
+    app.persistentCtx.drawImage(app.offscreenCanvas, 0, 0);
+    app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
+    app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
+    app.ctx.drawImage(app.persistentCanvas, 0, 0);
+    const color = getColor(app.lastX, app.lastY);
+    app.strokes.push({ points: [{ x: app.lastX, y: app.lastY, time: performance.now() }], brush: app.currentBrush, size: app.brushSize, color, opacity: app.opacity });
+    app.actions.push({ imageData: app.persistentCtx.getImageData(0, 0, app.canvas.width, app.canvas.height), strokes: [{ x: app.lastX, y: app.lastY }], brush: app.currentBrush, size: app.brushSize, color, opacity: app.opacity });
+    app.redoStack = [];
+}
+
+function startMP4Recording() {
+    const app = DrawingApp;
+    if (app.recording) return;
+    if (app.actions.length === 0) {
+        showNotification('No drawing actions to record.', 'error');
+        return;
+    }
+
+    const videoRes = getVideoResolution();
+    const recordingCanvas = document.createElement('canvas');
+    recordingCanvas.width = videoRes.width;
+    recordingCanvas.height = videoRes.height;
+    const recordingCtx = recordingCanvas.getContext('2d');
+
+    app.recordedChunks = [];
+    const stream = recordingCanvas.captureStream(app.frameRate);
+    const mimeType = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm';
+    app.mediaRecorder = new MediaRecorder(stream, { mimeType });
+    app.mediaRecorder.ondataavailable = (e) => app.recordedChunks.push(e.data);
+    app.mediaRecorder.onstop = () => {
+        const extension = mimeType === 'video/mp4' ? 'mp4' : 'webm';
+        const blob = new Blob(app.recordedChunks, { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `drawing_process_${videoRes.width}x${videoRes.height}.${extension}`;
+        link.click();
+        URL.revokeObjectURL(url);
+        showNotification(`Saved as ${extension} at ${videoRes.width}x${videoRes.height}`, 'success');
+        app.recording = false;
+        document.getElementById('saveMP4').textContent = 'Save MP4';
+        resizeCanvas();
+    };
+
+    app.mediaRecorder.start();
+    app.recording = true;
+    document.getElementById('saveMP4').textContent = 'Stop Recording';
+
+    recordingCtx.clearRect(0, 0, recordingCanvas.width, recordingCanvas.height);
+    drawBackground(recordingCtx);
+
+    let frameIndex = 0;
+    const frameDelay = 1000 / app.frameRate;
+
+    function replayFrame() {
+        if (frameIndex < app.actions.length && app.recording) {
+            recordingCtx.putImageData(app.actions[frameIndex].imageData, 0, 0);
+            frameIndex++;
+            setTimeout(replayFrame, frameDelay);
+        } else if (app.recording) {
+            app.mediaRecorder.stop();
+        }
+    }
+
+    replayFrame();
+}
+
+function startGIFRecording() {
+    const app = DrawingApp;
+    if (app.gifRecorder) return;
+    if (app.actions.length === 0) {
+        showNotification('No drawing actions to record.', 'error');
+        return;
+    }
+
+    const videoRes = getVideoResolution();
+    const recordingCanvas = document.createElement('canvas');
+    recordingCanvas.width = videoRes.width;
+    recordingCanvas.height = videoRes.height;
+    const recordingCtx = recordingCanvas.getContext('2d');
+
+    try {
+        app.gifRecorder = new GIF({
+            workers: 2,
+            quality: 10,
+            width: recordingCanvas.width,
+            height: recordingCanvas.height,
+            workerScript: 'https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js'
+        });
+    } catch (error) {
+        showNotification('Failed to initialize GIF recording.', 'error');
+        console.error(error);
+        return;
+    }
+
+    app.gifRecorder.on('finished', (blob) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `drawing_process_${videoRes.width}x${videoRes.height}.gif`;
+        link.click();
+        URL.revokeObjectURL(url);
+        showNotification(`GIF saved at ${videoRes.width}x${videoRes.height}`, 'success');
+        app.gifRecorder = null;
+        document.getElementById('saveGIF').textContent = 'Save GIF';
+    });
+    app.gifRecorder.on('error', (error) => {
+        showNotification('GIF recording failed.', 'error');
+        console.error('GIF Error:', error);
+    });
+
+    document.getElementById('saveGIF').textContent = 'Stop GIF';
+
+    recordingCtx.clearRect(0, 0, recordingCanvas.width, recordingCanvas.height);
+    drawBackground(recordingCtx);
+
+    let frameIndex = 0;
+    const frameDelay = 33;
+
+    function replayFrameForGIF() {
+        if (frameIndex < app.actions.length && app.gifRecorder) {
+            recordingCtx.putImageData(app.actions[frameIndex].imageData, 0, 0);
+            app.gifRecorder.addFrame(recordingCtx, { copy: true, delay: frameDelay });
+            frameIndex++;
+            setTimeout(replayFrameForGIF, frameDelay);
+        } else if (app.gifRecorder) {
+            app.gifRecorder.render();
+        }
+    }
+
+    replayFrameForGIF();
+}
+
+function saveAsSVG() {
+    const app = DrawingApp;
+    let svgContent = `<svg width="${app.canvas.width}" height="${app.canvas.height}" xmlns="http://www.w3.org/2000/svg">`;
+    if (!app.transparentBg) {
+        if (app.gradientBg) {
+            svgContent += `<defs><linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:${app.bgColor};stop-opacity:1" /><stop offset="100%" style="stop-color:${app.bgColor2};stop-opacity:1" /></linearGradient></defs><rect width="100%" height="100%" fill="url(#bgGradient)" />`;
+        } else {
+            svgContent += `<rect width="100%" height="100%" fill="${app.bgColor}" />`;
+        }
+    }
+    if (app.bgImage) svgContent += `<image width="100%" height="100%" xlink:href="${app.bgImage.src}" />`;
+    svgContent += app.svgPaths.join('');
+    svgContent += '</svg>';
+    const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'artwork.svg';
+    link.click();
+    URL.revokeObjectURL(url);
+    showNotification('SVG saved successfully', 'success');
+}
+
+// UI and Initialization
+document.addEventListener('DOMContentLoaded', () => {
+    const app = DrawingApp;
+    app.canvas = document.getElementById('canvas');
+    app.ctx = app.canvas.getContext('2d');
+    app.persistentCanvas = document.createElement('canvas');
+    app.persistentCtx = app.persistentCanvas.getContext('2d');
+    app.offscreenCanvas = document.createElement('canvas');
+    app.offscreenCtx = app.offscreenCanvas.getContext('2d');
 
     const quotes = [
         "Art is not what you see, but what you make others see....:Edgar Degas",
@@ -70,6 +637,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('quote-text').textContent = quotes[Math.floor(Math.random() * quotes.length)];
     document.getElementById('close-welcome').addEventListener('click', () => {
         document.getElementById('welcome-screen').classList.add('hidden');
+    });
+
+    window.addEventListener('load', () => {
+        showNotification('Welcome to the Brush Stroke Patterns Drawing Tool!', 'success');
     });
 
     function handleOrientationChange() {
@@ -92,56 +663,23 @@ document.addEventListener('DOMContentLoaded', () => {
         resizeCanvas();
     });
 
-    function resizeCanvas() {
-        const toolbar = document.getElementById('toolbar');
-        const container = document.getElementById('canvas-container');
-        const isFullscreen = document.fullscreenElement !== null;
-
-        let tempImageData = null;
-        if (persistentCanvas.width > 0 && persistentCanvas.height > 0) {
-            tempImageData = persistentCtx.getImageData(0, 0, persistentCanvas.width, persistentCanvas.height);
-        }
-
-        const resolution = getInternalResolution();
-        canvas.width = resolution.width;
-        canvas.height = resolution.height;
-        persistentCanvas.width = resolution.width;
-        persistentCanvas.height = resolution.height;
-        offscreenCanvas.width = resolution.width;
-        offscreenCanvas.height = resolution.height;
-
-        if (isFullscreen) {
-            canvas.style.width = '100%';
-            canvas.style.height = '100%';
-        } else {
-            const toolbarHeight = toolbar.offsetHeight;
-            const availableWidth = window.innerWidth - 22;
-            const availableHeight = window.innerHeight - toolbarHeight - 22;
-            let displayWidth = availableWidth;
-            let displayHeight = displayWidth / ASPECT_RATIO;
-            if (displayHeight > availableHeight) {
-                displayHeight = availableHeight;
-                displayWidth = displayHeight * ASPECT_RATIO;
-            }
-            canvas.style.width = `${displayWidth}px`;
-            canvas.style.height = `${displayHeight}px`;
-        }
-
-        drawBackground(persistentCtx);
-        if (tempImageData) {
-            persistentCtx.putImageData(tempImageData, 0, 0);
-        }
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(persistentCanvas, 0, 0);
-    }
-
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', () => {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => {
+                t.classList.remove('active');
+                t.setAttribute('aria-selected', 'false');
+            });
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             tab.classList.add('active');
+            tab.setAttribute('aria-selected', 'true');
             document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
             resizeCanvas();
+        });
+        tab.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                tab.click();
+            }
         });
     });
 
@@ -152,9 +690,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (input.type === 'color') {
                 input.addEventListener('input', (e) => {
                     func(e.target.value);
-                    if (id === 'bgColor' && !bgImage && !transparentBg) {
-                        drawBackground(persistentCtx);
-                        ctx.drawImage(persistentCanvas, 0, 0);
+                    if ((id === 'bgColor' || id === 'bgColor2') && !app.bgImage && !app.transparentBg) {
+                        drawBackground(app.persistentCtx);
+                        app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
+                        app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
+                        app.ctx.drawImage(app.persistentCanvas, 0, 0);
                     }
                 });
             } else if (input.type === 'range') {
@@ -168,43 +708,77 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    updateValue('brushSize', v => brushSize = parseFloat(v));
-    updateValue('smoothness', v => smoothness = parseFloat(v) / 100);
-    updateValue('opacity', v => opacity = parseFloat(v));
-    updateValue('webDensity', v => webDensity = parseInt(v));
-    updateValue('webSpread', v => webSpread = parseFloat(v));
-    updateValue('webWiggle', v => webWiggle = parseFloat(v));
-    updateValue('circleSize', v => circleSize = parseFloat(v));
-    updateValue('borderWidth', v => borderWidth = parseFloat(v));
-    updateValue('watercolorSpread', v => watercolorSpread = parseFloat(v));
-    updateValue('watercolorBleed', v => watercolorBleed = parseFloat(v));
-    updateValue('wingSize', v => wingSize = parseFloat(v));
-    updateValue('curlIntensity', v => curlIntensity = parseFloat(v));
-    updateValue('wingOpacity', v => wingOpacity = parseFloat(v));
-    updateValue('colorPicker1', v => {
-        color1 = v;
-        if (dualTone && !colorImage) {
-            colorImageCanvas = createGradientImage(color1, color2);
-            colorImageCtx = colorImageCanvas.getContext('2d');
+    updateValue('brushSize', v => app.brushSize = parseFloat(v));
+    updateValue('smoothness', v => app.smoothness = parseFloat(v) / 100);
+    updateValue('opacity', v => app.opacity = parseFloat(v));
+    updateValue('webDensity', v => app.webDensity = parseInt(v));
+    updateValue('webSpread', v => app.webSpread = parseFloat(v));
+    updateValue('webWiggle', v => app.webWiggle = parseFloat(v));
+    updateValue('circleSize', v => app.circleSize = parseFloat(v));
+    updateValue('borderWidth', v => app.borderWidth = parseFloat(v));
+    updateValue('watercolorSpread', v => app.watercolorSpread = parseFloat(v));
+    updateValue('watercolorBleed', v => app.watercolorBleed = parseFloat(v));
+    updateValue('wingSize', v => app.wingSize = parseFloat(v));
+    updateValue('curlIntensity', v => app.curlIntensity = parseFloat(v));
+    updateValue('wingOpacity', v => app.wingOpacity = parseFloat(v));
+    updateValue('bgColor', v => app.bgColor = v);
+    updateValue('bgColor2', v => app.bgColor2 = v);
+    updateValue('colorSamplingMethod', v => app.colorSamplingMethod = v);
+    updateValue('spiralSteps', v => app.spiralSteps = parseInt(v));
+
+    function updateColorInputs() {
+        const colorInputs = document.getElementById('colorInputs');
+        colorInputs.innerHTML = '';
+        for (let i = 0; i < app.colorCount; i++) {
+            const label = document.createElement('label');
+            label.textContent = `Color ${i + 1}:`;
+            label.setAttribute('data-tooltip', `Pick color ${i + 1}`);
+            const input = document.createElement('input');
+            input.type = 'color';
+            input.id = `colorPicker${i + 1}`;
+            input.value = app.colors[i] || app.defaultColors[i % app.defaultColors.length];
+            input.setAttribute('aria-label', `Color ${i + 1}`);
+            colorInputs.appendChild(label);
+            colorInputs.appendChild(input);
+
+            input.addEventListener('input', (e) => {
+                app.colors[i] = e.target.value;
+                if (!app.colorImage) {
+                    app.colorImageCanvas = createGradientImage(app.colors);
+                    app.colorImageCtx = app.colorImageCanvas ? app.colorImageCanvas.getContext('2d') : null;
+                }
+            });
         }
-    });
-    updateValue('colorPicker2', v => {
-        color2 = v;
-        if (dualTone && !colorImage) {
-            colorImageCanvas = createGradientImage(color1, color2);
-            colorImageCtx = colorImageCanvas.getContext('2d');
+        if (!app.colorImage) {
+            app.colorImageCanvas = createGradientImage(app.colors);
+            app.colorImageCtx = app.colorImageCanvas ? app.colorImageCanvas.getContext('2d') : null;
         }
+    }
+
+    updateColorInputs();
+
+    document.getElementById('colorCount').addEventListener('change', (e) => {
+        app.colorCount = parseInt(e.target.value);
+        const prevColors = app.colors.slice();
+        app.colors = [];
+        for (let i = 0; i < app.colorCount; i++) {
+            app.colors[i] = prevColors[i] || app.defaultColors[i % app.defaultColors.length];
+        }
+        updateColorInputs();
     });
-    updateValue('gradientRatio', v => gradientRatio = parseFloat(v));
-    updateValue('bgColor', v => bgColor = v);
-    updateValue('colorSamplingMethod', v => colorSamplingMethod = v);
 
     document.querySelectorAll('.symmetry-option').forEach(option => {
         option.addEventListener('click', function() {
-            if (lowPerformanceMode && parseInt(this.getAttribute('data-symmetry')) > 4) return;
+            if (app.lowPerformanceMode && parseInt(this.getAttribute('data-symmetry')) > 4) return;
             document.querySelectorAll('.symmetry-option').forEach(o => o.classList.remove('active'));
             this.classList.add('active');
-            symmetry = parseInt(this.getAttribute('data-symmetry'), 10);
+            app.symmetry = parseInt(this.getAttribute('data-symmetry'), 10);
+        });
+        option.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                option.click();
+            }
         });
     });
 
@@ -212,56 +786,40 @@ document.addEventListener('DOMContentLoaded', () => {
         option.addEventListener('click', function() {
             document.querySelectorAll('.mirror-option').forEach(o => o.classList.remove('active'));
             this.classList.add('active');
-            mirrorMode = this.getAttribute('data-mirror');
+            app.mirrorMode = this.getAttribute('data-mirror');
+        });
+        option.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                option.click();
+            }
         });
     });
 
     document.querySelectorAll('.spiral-option').forEach(option => {
         option.addEventListener('click', function() {
-            if (lowPerformanceMode && this.getAttribute('data-spiral') === 'on') return;
+            if (app.lowPerformanceMode && this.getAttribute('data-spiral') === 'on') return;
             document.querySelectorAll('.spiral-option').forEach(o => o.classList.remove('active'));
             this.classList.add('active');
-            spiralMode = this.getAttribute('data-spiral');
+            app.spiralMode = this.getAttribute('data-spiral');
+            document.getElementById('spiralSettings').style.display = app.spiralMode === 'on' ? 'flex' : 'none';
         });
-    });
-
-    function createGradientImage(color1, color2) {
-        const gradientCanvas = document.createElement('canvas');
-        gradientCanvas.width = 256;
-        gradientCanvas.height = 1;
-        const gradientCtx = gradientCanvas.getContext('2d');
-        
-        const gradient = gradientCtx.createLinearGradient(0, 0, 256, 0);
-        gradient.addColorStop(0, color1);
-        gradient.addColorStop(1, color2);
-        
-        gradientCtx.fillStyle = gradient;
-        gradientCtx.fillRect(0, 0, 256, 1);
-        
-        return gradientCanvas;
-    }
-
-    document.getElementById('dualTone').addEventListener('change', e => {
-        dualTone = e.target.checked;
-        if (dualTone && !colorImage) {
-            colorImageCanvas = createGradientImage(color1, color2);
-            colorImageCtx = colorImageCanvas.getContext('2d');
-            document.getElementById('colorSamplingMethod').value = 'horizontal';
-            colorSamplingMethod = 'horizontal';
-        } else if (!dualTone && !colorImage) {
-            colorImageCanvas = null;
-            colorImageCtx = null;
-        }
+        option.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                option.click();
+            }
+        });
     });
 
     function setupBrushOptions() {
         const brushSelect = document.getElementById('brushSelect');
         brushSelect.addEventListener('change', function() {
-            currentBrush = this.value;
+            app.currentBrush = this.value;
             ['webSettings', 'continuousCircleSettings', 'watercolorSettings', 'curlyWingsSettings'].forEach(id => {
-                document.getElementById(id).style.display = currentBrush === id.split('Settings')[0] ? 'flex' : 'none';
+                document.getElementById(id).style.display = app.currentBrush === id.split('Settings')[0] ? 'flex' : 'none';
             });
-            if (currentBrush === 'continuousCircle') {
+            if (app.currentBrush === 'continuousCircle') {
                 document.getElementById('continuousCircleSettings').style.display = 'flex';
             }
         });
@@ -274,72 +832,93 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('bgImageUpload').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
+            if (!file.type.startsWith('image/')) {
+                showNotification('Please upload an image file.', 'error');
+                e.target.value = '';
+                return;
+            }
             const reader = new FileReader();
             reader.onload = (event) => {
-                bgImage = new Image();
-                bgImage.onload = () => {
-                    drawBackground(persistentCtx);
-                    ctx.drawImage(persistentCanvas, 0, 0);
+                app.bgImage = new Image();
+                app.bgImage.onload = () => {
+                    drawBackground(app.persistentCtx);
+                    app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
+                    app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
+                    app.ctx.drawImage(app.persistentCanvas, 0, 0);
+                    showNotification('Background image uploaded!', 'success');
                 };
-                bgImage.src = event.target.result;
+                app.bgImage.onerror = () => {
+                    showNotification('Failed to load image.', 'error');
+                    app.bgImage = null;
+                };
+                app.bgImage.src = event.target.result;
             };
             reader.readAsDataURL(file);
         }
     });
 
+    document.getElementById('gradientBg').addEventListener('change', (e) => {
+        app.gradientBg = e.target.checked;
+        drawBackground(app.persistentCtx);
+        app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
+        app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
+        app.ctx.drawImage(app.persistentCanvas, 0, 0);
+    });
+
     document.getElementById('transparentBg').addEventListener('change', (e) => {
-        transparentBg = e.target.checked;
-        drawBackground(persistentCtx);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(persistentCanvas, 0, 0);
+        app.transparentBg = e.target.checked;
+        drawBackground(app.persistentCtx);
+        app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
+        app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
+        app.ctx.drawImage(app.persistentCanvas, 0, 0);
     });
 
     document.getElementById('colorImageUpload').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
+            if (!file.type.startsWith('image/')) {
+                showNotification('Please upload an image file.', 'error');
+                e.target.value = '';
+                return;
+            }
             const reader = new FileReader();
             reader.onload = (event) => {
-                colorImage = new Image();
-                colorImage.onload = () => {
-                    colorImageCanvas = document.createElement('canvas');
-                    colorImageCanvas.width = colorImage.width;
-                    colorImageCanvas.height = colorImage.height;
-                    colorImageCtx = colorImageCanvas.getContext('2d');
-                    colorImageCtx.drawImage(colorImage, 0, 0);
+                app.colorImage = new Image();
+                app.colorImage.onload = () => {
+                    app.colorImageCanvas = document.createElement('canvas');
+                    app.colorImageCanvas.width = app.colorImage.width;
+                    app.colorImageCanvas.height = app.colorImage.height;
+                    app.colorImageCtx = app.colorImageCanvas.getContext('2d');
+                    app.colorImageCtx.drawImage(app.colorImage, 0, 0);
+                    showNotification('Color sampling image uploaded!', 'success');
                 };
-                colorImage.src = event.target.result;
+                app.colorImage.onerror = () => {
+                    showNotification('Failed to load image.', 'error');
+                    app.colorImage = null;
+                };
+                app.colorImage.src = event.target.result;
             };
             reader.readAsDataURL(file);
         }
     });
 
     document.getElementById('removeColorImage').addEventListener('click', () => {
-        colorImage = null;
-        colorImageCanvas = null;
-        colorImageCtx = null;
+        app.colorImage = null;
+        app.colorImageCanvas = createGradientImage(app.colors);
+        app.colorImageCtx = app.colorImageCanvas ? app.colorImageCanvas.getContext('2d') : null;
         document.getElementById('colorImageUpload').value = '';
-        if (dualTone) {
-            colorImageCanvas = createGradientImage(color1, color2);
-            colorImageCtx = colorImageCanvas.getContext('2d');
-        }
-    });
-
-    document.getElementById('removeBgImage').addEventListener('click', () => {
-        bgImage = null;
-        drawBackground(persistentCtx);
-        ctx.drawImage(persistentCanvas, 0, 0);
-        document.getElementById('bgImageUpload').value = '';
+        showNotification('Color image removed.', 'success');
     });
 
     document.getElementById('performanceMode').addEventListener('change', (e) => {
-        lowPerformanceMode = e.target.checked;
+        app.lowPerformanceMode = e.target.checked;
         updatePerformanceModeUI();
     });
 
     function updatePerformanceModeUI() {
         const symmetryOptions = document.querySelectorAll('.symmetry-option');
         const spiralOptions = document.querySelectorAll('.spiral-option');
-        if (lowPerformanceMode) {
+        if (app.lowPerformanceMode) {
             symmetryOptions.forEach(option => {
                 const value = parseInt(option.getAttribute('data-symmetry'));
                 if (value > 4) {
@@ -363,382 +942,164 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function drawBackground(context) {
-        if (transparentBg) {
-            context.clearRect(0, 0, canvas.width, canvas.height);
-        } else if (bgImage) {
-            context.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
-        } else {
-            context.fillStyle = bgColor;
-            context.fillRect(0, 0, canvas.width, canvas.height);
-        }
-    }
-
-    let lastDrawTime = 0;
-    function draw(e) {
-        e.preventDefault();
-        if (!painting || e.buttons !== 1) return;
-        const currentTime = performance.now();
-        if (currentTime - lastDrawTime < 16) return;
-        lastDrawTime = currentTime;
-
-        const canvasRect = canvas.getBoundingClientRect();
-        const resolution = getInternalResolution();
-        const scaleX = resolution.width / canvasRect.width;
-        const scaleY = resolution.height / canvasRect.height;
-        let currentX = (e.clientX - canvasRect.left) * scaleX;
-        let currentY = (e.clientY - canvasRect.top) * scaleY;
-
-        const pressure = e.pressure !== undefined ? e.pressure : 0.5;
-        const adjustedBrushSize = brushSize * (0.2 + 0.8 * pressure);
-        const adjustedCircleSize = circleSize * (0.2 + 0.8 * pressure);
-
-        if (!isDrawingStarted) {
-            isDrawingStarted = true;
-        }
-
-        if (lastX !== undefined && lastY !== undefined) {
-            const dx = currentX - lastX;
-            const dy = currentY - lastY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
-            offscreenCtx.globalCompositeOperation = 'lighter';
-            for (let i = 0; i <= distance; i += smoothness) {
-                const point = i / distance;
-                const x = lastX + dx * point;
-                const y = lastY + dy * point;
-                drawWithSymmetry(x, y, dx, dy, adjustedBrushSize, adjustedCircleSize);
-            }
-            persistentCtx.drawImage(offscreenCanvas, 0, 0);
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(persistentCanvas, 0, 0);
-            actions.push({
-                imageData: persistentCtx.getImageData(0, 0, canvas.width, canvas.height)
-            });
-            redoStack = [];
-        }
-        lastX = currentX;
-        lastY = currentY;
-    }
-
-    function drawWithSymmetry(x, y, dx, dy, adjustedBrushSize, adjustedCircleSize) {
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        const effectiveSymmetry = lowPerformanceMode ? Math.min(symmetry, 4) : symmetry;
-        const effectiveSpiralMode = lowPerformanceMode ? 'off' : spiralMode;
-
-        for (let i = 0; i < effectiveSymmetry; i++) {
-            const angle = i * (Math.PI * 2 / effectiveSymmetry);
-            const newX = x - centerX;
-            const newY = y - centerY;
-            const rotatedX = newX * Math.cos(angle) - newY * Math.sin(angle) + centerX;
-            const rotatedY = newX * Math.sin(angle) + newY * Math.cos(angle) + centerY;
-            const rotatedDx = dx * Math.cos(angle) - dy * Math.sin(angle);
-            const rotatedDy = dx * Math.sin(angle) + dy * Math.cos(angle);
-
-            if (effectiveSpiralMode === 'on') {
-                const distanceFromCenter = Math.sqrt((rotatedX - centerX) ** 2 + (rotatedY - centerY) ** 2);
-                const baseAngle = Math.atan2(rotatedY - centerY, rotatedX - centerX);
-                const spiralSteps = 10;
-                const maxRadius = distanceFromCenter;
-
-                for (let j = 0; j <= spiralSteps; j++) {
-                    const t = j / spiralSteps;
-                    const theta = baseAngle + t * Math.PI * 2;
-                    const r = maxRadius * t;
-                    const spiralX = centerX + r * Math.cos(theta);
-                    const spiralY = centerY + r * Math.sin(theta);
-                    const spiralDx = rotatedDx * (1 - t);
-                    const spiralDy = rotatedDy * (1 - t);
-
-                    if (spiralX >= 0 && spiralX <= canvas.width && spiralY >= 0 && spiralY <= canvas.height) {
-                        applyMirrorTransformations(spiralX, spiralY, spiralDx, spiralDy, adjustedBrushSize * (1 - t), adjustedCircleSize * (1 - t));
-                    }
-                }
-            } else {
-                applyMirrorTransformations(rotatedX, rotatedY, rotatedDx, rotatedDy, adjustedBrushSize, adjustedCircleSize);
-            }
-        }
-    }
-
-    function applyMirrorTransformations(x, y, dx, dy, adjustedBrushSize, adjustedCircleSize) {
-        drawBrush(x, y, dx, dy, adjustedBrushSize, adjustedCircleSize);
-        if (mirrorMode === 'horizontal') {
-            drawBrush(x, canvas.height - y, dx, -dy, adjustedBrushSize, adjustedCircleSize);
-        } else if (mirrorMode === 'vertical') {
-            drawBrush(canvas.width - x, y, -dx, dy, adjustedBrushSize, adjustedCircleSize);
-        }
-    }
-
-    function drawBrush(x, y, dx, dy, adjustedBrushSize, adjustedCircleSize) {
-        const color = getColor(x, y);
-        switch (currentBrush) {
-            case 'web':
-                drawSpiderWeb(offscreenCtx, x, y, adjustedBrushSize, color);
-                break;
-            case 'continuousCircle':
-                drawContinuousCircles(offscreenCtx, x, y, dx, dy, adjustedCircleSize, color);
-                break;
-            case 'watercolor':
-                drawWatercolor(offscreenCtx, x, y, dx, dy, adjustedBrushSize, color);
-                break;
-            case 'curlyWings':
-                drawCurlyWings(offscreenCtx, x, y, dx, dy, adjustedBrushSize, color);
-                break;
-        }
-    }
-
-    function getColor(x, y) {
-        if (colorImageCtx) {
-            let imgX, imgY;
-            switch (colorSamplingMethod) {
-                case 'random':
-                    imgX = Math.floor(Math.random() * colorImageCanvas.width);
-                    imgY = Math.floor(Math.random() * colorImageCanvas.height);
-                    break;
-                case 'spatial':
-                    imgX = Math.floor((x / canvas.width) * colorImageCanvas.width);
-                    imgY = Math.floor((y / canvas.height) * colorImageCanvas.height);
-                    break;
-                case 'horizontal':
-                    imgX = Math.floor((x / canvas.width) * colorImageCanvas.width);
-                    imgY = 0;
-                    break;
-                case 'vertical':
-                    imgX = Math.floor(colorImageCanvas.width / 2);
-                    imgY = Math.floor((y / canvas.height) * colorImageCanvas.height);
-                    break;
-                case 'radial':
-                    const centerX = canvas.width / 2;
-                    const centerY = canvas.height / 2;
-                    const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-                    const maxDistance = Math.sqrt((canvas.width / 2) ** 2 + (canvas.height / 2) ** 2);
-                    const ratio = distance / maxDistance;
-                    imgX = Math.floor(ratio * colorImageCanvas.width);
-                    imgY = 0;
-                    break;
-            }
-            imgX = Math.min(Math.max(imgX, 0), colorImageCanvas.width - 1);
-            imgY = Math.min(Math.max(imgY, 0), colorImageCanvas.height - 1);
-            const pixelData = colorImageCtx.getImageData(imgX, imgY, 1, 1).data;
-            return `#${((1 << 24) + (pixelData[0] << 16) + (pixelData[1] << 8) + pixelData[2]).toString(16).slice(1)}`;
-        }
-        return color1;
-    }
-
-    function drawSpiderWeb(ctx, x, y, size, color) {
-        ctx.globalAlpha = opacity;
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        for (let i = 0; i < webDensity; i++) {
-            let angle = Math.random() * Math.PI * 2;
-            let endAngle = angle + (Math.random() - 0.5) * Math.PI * webSpread;
-            let radius = size * (Math.random() + 0.5);
-            let points = [];
-            let segments = 10;
-            for (let j = 0; j <= segments; j++) {
-                let t = j / segments;
-                let currentAngle = angle + (endAngle - angle) * t;
-                let wiggle = (Math.random() - 0.5) * size * webWiggle;
-                let r = radius * t + wiggle;
-                points.push({ x: x + r * Math.cos(currentAngle), y: y + r * Math.sin(currentAngle) });
-            }
-            ctx.moveTo(x, y);
-            for (let point of points) ctx.lineTo(point.x, point.y);
-        }
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        ctx.globalAlpha = 1.0;
-    }
-
-    function drawContinuousCircles(ctx, x, y, dx, dy, size, color) {
-        ctx.globalAlpha = opacity;
-        ctx.strokeStyle = color;
-        ctx.lineWidth = borderWidth;
-        ctx.beginPath();
-        ctx.arc(x, y, size, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.globalAlpha = 1.0;
-    }
-
-    function drawWatercolor(ctx, x, y, dx, dy, size, color) {
-        ctx.globalAlpha = opacity * 0.5;
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(x, y, size * watercolorSpread, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalAlpha = opacity * watercolorBleed;
-        for (let i = 0; i < 5; i++) {
-            const offsetX = (Math.random() - 0.5) * size * watercolorSpread;
-            const offsetY = (Math.random() - 0.5) * size * watercolorSpread;
-            ctx.beginPath();
-            ctx.arc(x + offsetX, y + offsetY, size * watercolorSpread * (0.5 + Math.random() * 0.5), 0, Math.PI * 2);
-            ctx.fillStyle = color;
-            ctx.fill();
-        }
-        ctx.globalAlpha = 1.0;
-    }
-
-    function drawCurlyWings(ctx, x, y, dx, dy, size, color) {
-        ctx.globalAlpha = opacity;
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x + dx, y + dy);
-        ctx.stroke();
-
-        ctx.globalAlpha = wingOpacity;
-        const wingCount = 3;
-        const angle = Math.atan2(dy, dx);
-        const perpAngle = angle + Math.PI / 2;
-
-        for (let i = 0; i < wingCount; i++) {
-            let t = i / (wingCount - 1);
-            if (wingCount === 1) t = 0.5;
-            let wingBaseX = x + dx * t;
-            let wingBaseY = y + dy * t;
-
-            ctx.beginPath();
-            ctx.moveTo(wingBaseX, wingBaseY);
-            let controlX1 = wingBaseX + Math.cos(perpAngle) * wingSize * 0.3;
-            let controlY1 = wingBaseY + Math.sin(perpAngle) * wingSize * 0.3;
-            let controlX2 = wingBaseX - Math.cos(angle + curlIntensity) * wingSize * 0.7;
-            let controlY2 = wingBaseY - Math.sin(angle + curlIntensity) * wingSize * 0.7;
-            let endX = wingBaseX - Math.cos(angle + curlIntensity * 1.5) * wingSize;
-            let endY = wingBaseY - Math.sin(angle + curlIntensity * 1.5) * wingSize;
-            ctx.bezierCurveTo(controlX1, controlY1, controlX2, controlY2, endX, endY);
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.moveTo(wingBaseX, wingBaseY);
-            controlX1 = wingBaseX - Math.cos(perpAngle) * wingSize * 0.3;
-            controlY1 = wingBaseY - Math.sin(perpAngle) * wingSize * 0.3;
-            controlX2 = wingBaseX - Math.cos(angle - curlIntensity) * wingSize * 0.7;
-            controlY2 = wingBaseY - Math.sin(angle - curlIntensity) * wingSize * 0.7;
-            endX = wingBaseX - Math.cos(angle - curlIntensity * 1.5) * wingSize;
-            endY = wingBaseY - Math.sin(angle - curlIntensity * 1.5) * wingSize;
-            ctx.bezierCurveTo(controlX1, controlY1, controlX2, controlY2, endX, endY);
-            ctx.stroke();
-        }
-        ctx.globalAlpha = 1.0;
-    }
-
-    function startPosition(e) {
-        e.preventDefault();
-        const canvasRect = canvas.getBoundingClientRect();
-        const resolution = getInternalResolution();
-        const scaleX = resolution.width / canvasRect.width;
-        const scaleY = resolution.height / canvasRect.height;
-        lastX = (e.clientX - canvasRect.left) * scaleX;
-        lastY = (e.clientY - canvasRect.top) * scaleY;
-        painting = true;
-        if (!isDrawingStarted) {
-            isDrawingStarted = true;
-        }
-        offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
-        ctx.globalCompositeOperation = 'source-over';
-        drawWithSymmetry(lastX, lastY, 0, 0, brushSize, circleSize);
-        persistentCtx.drawImage(offscreenCanvas, 0, 0);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(persistentCanvas, 0, 0);
-        actions.push({
-            imageData: persistentCtx.getImageData(0, 0, canvas.width, canvas.height)
-        });
-        redoStack = [];
-    }
-
-    canvas.addEventListener('pointerdown', startPosition);
-    canvas.addEventListener('pointermove', draw);
+    app.canvas.addEventListener('pointerdown', startPosition);
+    app.canvas.addEventListener('pointermove', draw);
     document.addEventListener('pointerup', () => {
-        painting = false;
-        lastX = undefined;
-        lastY = undefined;
+        app.painting = false;
+        app.lastX = undefined;
+        app.lastY = undefined;
     });
 
+    app.canvas.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 2) {
+            e.preventDefault();
+            app.initialDistance = getTouchDistance(e.touches);
+            app.initialScale = app.scale;
+        } else {
+            startPosition(e);
+        }
+    }, { passive: false });
+
+    app.canvas.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 2) {
+            e.preventDefault();
+            const currentDistance = getTouchDistance(e.touches);
+            app.scale = app.initialScale * (currentDistance / app.initialDistance);
+            app.scale = Math.min(Math.max(app.scale, 0.5), 3);
+            app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
+            app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
+            app.ctx.drawImage(app.persistentCanvas, 0, 0);
+        } else {
+            draw(e);
+        }
+    }, { passive: false });
+
+    app.canvas.addEventListener('touchend', (e) => {
+        if (e.touches.length < 2) {
+            app.painting = false;
+            app.lastX = undefined;
+            app.lastY = undefined;
+        }
+    }, { passive: false });
+
     document.getElementById('clear').addEventListener('click', () => {
-        persistentCtx.clearRect(0, 0, canvas.width, canvas.height);
-        drawBackground(persistentCtx);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(persistentCanvas, 0, 0);
-        actions = [];
-        redoStack = [];
-        isDrawingStarted = false;
+        app.persistentCtx.clearRect(0, 0, app.canvas.width, app.canvas.height);
+        drawBackground(app.persistentCtx);
+        app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
+        app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
+        app.ctx.drawImage(app.persistentCanvas, 0, 0);
+        app.actions = [];
+        app.redoStack = [];
+        app.strokes = [];
+        app.svgPaths = [];
+        app.isDrawingStarted = false;
+        if (app.recording) {
+            app.mediaRecorder.stop();
+            app.recording = false;
+            document.getElementById('saveMP4').textContent = 'Save MP4';
+        }
+        if (app.gifRecorder) {
+            app.gifRecorder.render();
+            app.gifRecorder = null;
+            document.getElementById('saveGIF').textContent = 'Save GIF';
+        }
+        showNotification('Canvas cleared!', 'success');
     });
 
     document.getElementById('save').addEventListener('click', () => {
         const link = document.createElement('a');
         link.download = 'brush_pattern_art.png';
-        link.href = canvas.toDataURL('image/png');
+        link.href = app.canvas.toDataURL('image/png');
         link.click();
+        showNotification('PNG saved successfully!', 'success');
     });
 
+    document.getElementById('saveMP4').addEventListener('click', () => {
+        if (!app.recording) {
+            startMP4Recording();
+        } else {
+            app.mediaRecorder.stop();
+            app.recording = false;
+            document.getElementById('saveMP4').textContent = 'Save MP4';
+        }
+    });
+
+    document.getElementById('saveGIF').addEventListener('click', () => {
+        if (!app.gifRecorder) {
+            startGIFRecording();
+        } else {
+            app.gifRecorder.render();
+            app.gifRecorder = null;
+            document.getElementById('saveGIF').textContent = 'Save GIF';
+        }
+    });
+
+    document.getElementById('saveSVG').addEventListener('click', saveAsSVG);
+
     document.getElementById('undo').addEventListener('click', () => {
-        if (actions.length > 1) {
-            redoStack.push(actions.pop());
-            const lastAction = actions[actions.length - 1];
-            persistentCtx.putImageData(lastAction.imageData, 0, 0);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(persistentCanvas, 0, 0);
+        if (app.actions.length > 1) {
+            app.redoStack.push(app.actions.pop());
+            const lastAction = app.actions[app.actions.length - 1];
+            app.persistentCtx.putImageData(lastAction.imageData, 0, 0);
+            app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
+            app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
+            app.ctx.drawImage(app.persistentCanvas, 0, 0);
+            app.strokes.pop();
+            app.svgPaths.pop();
+            showNotification('Action undone.', 'success');
         }
     });
 
     document.getElementById('redo').addEventListener('click', () => {
-        if (redoStack.length > 0) {
-            const action = redoStack.pop();
-            persistentCtx.putImageData(action.imageData, 0, 0);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(persistentCanvas, 0, 0);
-            actions.push(action);
+        if (app.redoStack.length > 0) {
+            const action = app.redoStack.pop();
+            app.persistentCtx.putImageData(action.imageData, 0, 0);
+            app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
+            app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
+            app.ctx.drawImage(app.persistentCanvas, 0, 0);
+            app.actions.push(action);
+            app.strokes.push(action.strokes);
+            showNotification('Action redone.', 'success');
         }
     });
 
     document.getElementById('undoAll').addEventListener('click', () => {
-        if (actions.length > 1) {
-            let frameIndex = actions.length - 1;
+        if (app.actions.length > 1) {
+            let frameIndex = app.actions.length - 1;
             function undoFrame() {
                 if (frameIndex > 0) {
-                    persistentCtx.putImageData(actions[frameIndex - 1].imageData, 0, 0);
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(persistentCanvas, 0, 0);
-                    redoStack.push(actions.pop());
+                    app.persistentCtx.putImageData(app.actions[frameIndex - 1].imageData, 0, 0);
+                    app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
+                    app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
+                    app.ctx.drawImage(app.persistentCanvas, 0, 0);
+                    app.redoStack.push(app.actions.pop());
+                    app.strokes.pop();
+                    app.svgPaths.pop();
                     frameIndex--;
                     setTimeout(undoFrame, 50);
                 }
             }
             undoFrame();
+            showNotification('All actions undone.', 'success');
         }
     });
 
     document.getElementById('redoAll').addEventListener('click', () => {
-        if (redoStack.length > 0) {
+        if (app.redoStack.length > 0) {
             function redoFrame() {
-                if (redoStack.length > 0) {
-                    const action = redoStack.pop();
-                    persistentCtx.putImageData(action.imageData, 0, 0);
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(persistentCanvas, 0, 0);
-                    actions.push(action);
+                if (app.redoStack.length > 0) {
+                    const action = app.redoStack.pop();
+                    app.persistentCtx.putImageData(action.imageData, 0, 0);
+                    app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
+                    app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
+                    app.ctx.drawImage(app.persistentCanvas, 0, 0);
+                    app.actions.push(action);
+                    app.strokes.push(action.strokes);
                     setTimeout(redoFrame, 50);
                 }
             }
             redoFrame();
-        }
-    });
-
-    document.addEventListener('keydown', (e) => {
-        if (e.ctrlKey && e.key === 'z') {
-            e.preventDefault();
-            document.getElementById('undo').click();
-        }
-    });
-
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'f' || e.key === 'F') {
-            e.preventDefault();
-            document.getElementById('toggleFullscreen').click();
+            showNotification('All actions redone.', 'success');
         }
     });
 
@@ -782,54 +1143,63 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-   function setupTooltips() {
-    const tooltipElements = document.querySelectorAll('[data-tooltip]');
-    tooltipElements.forEach(el => {
-        el.addEventListener('click', (e) => {
-            if (window.matchMedia('(max-width: 768px)').matches) {
-                const existingTooltip = document.querySelector('.tooltip-active');
-                if (existingTooltip) existingTooltip.remove();
-
-                const tooltipText = el.getAttribute('data-tooltip');
-                const tooltip = document.createElement('div');
-                tooltip.className = 'tooltip-active';
-                tooltip.textContent = tooltipText;
-                tooltip.style.position = 'absolute';
-                tooltip.style.background = 'rgba(0, 0, 0, 0.9)';
-                tooltip.style.color = '#fff';
-                tooltip.style.padding = '4px 8px';
-                tooltip.style.borderRadius = '3px';
-                tooltip.style.fontSize = '10px';
-                tooltip.style.zIndex = '10000'; // Increased from 101 to 1000
-
-                const rect = el.getBoundingClientRect();
-                const viewportHeight = window.innerHeight;
-                const spaceAbove = rect.top;
-                const spaceBelow = viewportHeight - rect.bottom;
-
-                // Position below if not enough space above
-                if (spaceAbove < 40 && spaceBelow > 40) {
-                    tooltip.style.top = `${rect.bottom + 5}px`; // 5px below element
-                    tooltip.style.left = `${rect.left + rect.width / 2}px`;
-                    tooltip.style.transform = 'translateX(-50%)';
-                } else {
-                    tooltip.style.top = `${rect.top - 30}px`; // Original above
-                    tooltip.style.left = `${rect.left + rect.width / 2}px`;
-                    tooltip.style.transform = 'translateX(-50%)';
-                }
-
-                document.body.appendChild(tooltip);
-
-                setTimeout(() => tooltip.remove(), 2000);
-                document.addEventListener('click', (e) => {
-                    if (!el.contains(e.target)) tooltip.remove();
-                }, { once: true });
-            }
-        });
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key === 'z') {
+            e.preventDefault();
+            document.getElementById('undo').click();
+        }
+        if (e.key === 'f' || e.key === 'F') {
+            e.preventDefault();
+            document.getElementById('toggleFullscreen').click();
+        }
     });
-}
 
-    drawBackground(persistentCtx);
+    function setupTooltips() {
+        const tooltipElements = document.querySelectorAll('[data-tooltip]');
+        tooltipElements.forEach(el => {
+            el.addEventListener('click', (e) => {
+                if (window.matchMedia('(max-width: 768px)').matches) {
+                    const existingTooltip = document.querySelector('.tooltip-active');
+                    if (existingTooltip) existingTooltip.remove();
+
+                    const tooltipText = el.getAttribute('data-tooltip');
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'tooltip-active';
+                    tooltip.textContent = tooltipText;
+                    tooltip.style.position = 'absolute';
+                    tooltip.style.background = 'rgba(0, 0, 0, 0.9)';
+                    tooltip.style.color = '#fff';
+                    tooltip.style.padding = '4px 8px';
+                    tooltip.style.borderRadius = '3px';
+                    tooltip.style.fontSize = '10px';
+                    tooltip.style.zIndex = '10000';
+
+                    const rect = el.getBoundingClientRect();
+                    const viewportHeight = window.innerHeight;
+                    const spaceAbove = rect.top;
+                    const spaceBelow = viewportHeight - rect.bottom;
+
+                    if (spaceAbove < 40 && spaceBelow > 40) {
+                        tooltip.style.top = `${rect.bottom + 5}px`;
+                        tooltip.style.left = `${rect.left + rect.width / 2}px`;
+                        tooltip.style.transform = 'translateX(-50%)';
+                    } else {
+                        tooltip.style.top = `${rect.top - 30}px`;
+                        tooltip.style.left = `${rect.left + rect.width / 2}px`;
+                        tooltip.style.transform = 'translateX(-50%)';
+                    }
+
+                    document.body.appendChild(tooltip);
+                    setTimeout(() => tooltip.remove(), 2000);
+                    document.addEventListener('click', (e) => {
+                        if (!el.contains(e.target)) tooltip.remove();
+                    }, { once: true });
+                }
+            });
+        });
+    }
+
+    drawBackground(app.persistentCtx);
     resizeCanvas();
     setupTooltips();
     updatePerformanceModeUI();

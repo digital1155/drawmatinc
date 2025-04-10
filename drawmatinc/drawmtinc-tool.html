@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta content="yes" name="mobile-web-app-capable">
+    <meta content="yes" name="apple-mobile-web-app-capable">
+    <meta name="description" content="Drawmatinc Brush Stroke Patterns Drawing Tool - Create art with customizable brushes, symmetry, and more.">
+    <title>Drawmatinc - Drawing Tool</title>
+    <link rel="stylesheet" href="dtstyles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.min.js"></script>
+    <script src="dtjavas.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <div id="toolbar">
+            <div id="options-cell">
+                <div class="tab-bar">
+                    <div class="tab active" data-tab="brush" role="tab" aria-selected="true" tabindex="0">Brush Settings</div>
+                    <div class="tab" data-tab="color" role="tab" aria-selected="false" tabindex="0">Color Settings</div>
+                    <div class="tab" data-tab="transformations" role="tab" aria-selected="false" tabindex="0"> Transformations</div>
+                    <div class="tab" data-tab="background" role="tab" aria-selected="false" tabindex="0">Background Settings</div>
+                </div>
+                <div class="tab-content active" id="brush-tab">
+                    <select id="brushSelect">
+                        <option value="web">Wooly</option>
+                        <option value="continuousCircle" selected>Straws</option>
+                        <option value="watercolor">Watercolor</option>
+                        <option value="curlyWings">Curly Wings</option>
+                    </select>
+                    <div class="brush-settings" id="webSettings" style="display: none;">
+                        <label for="webDensity">Density:</label><input type="range" id="webDensity" min="1" max="10" value="3" step="1"><span id="webDensityValue">3</span>
+                        <label for="webSpread">Spread:</label><input type="range" id="webSpread" min="0" max="1" value="0.5" step="0.1"><span id="webSpreadValue">0.5</span>
+                        <label for="webWiggle">Wiggle:</label><input type="range" id="webWiggle" min="0" max="1" value="0.1" step="0.1"><span id="webWiggleValue">0.1</span>
+                    </div>
+                    <div class="brush-settings" id="continuousCircleSettings">
+                        <label for="circleSize">Size:</label><input type="range" id="circleSize" min="1" max="50" value="10"><span id="circleSizeValue">10</span>
+                        <label for="borderWidth">Border:</label><input type="range" id="borderWidth" min="1" max="10" value="1"><span id="borderWidthValue">1</span>
+                    </div>
+                    <div class="brush-settings" id="watercolorSettings" style="display: none;">
+                        <label for="watercolorSpread">Spread:</label><input type="range" id="watercolorSpread" min="0" max="1" value="0.5" step="0.1"><span id="watercolorSpreadValue">0.5</span>
+                        <label for="watercolorBleed">Bleed:</label><input type="range" id="watercolorBleed" min="0" max="1" value="0.2" step="0.1"><span id="watercolorBleedValue">0.2</span>
+                    </div>
+                    <div class="brush-settings" id="curlyWingsSettings" style="display: none;">
+                        <label for="wingSize">Size:</label><input type="range" id="wingSize" min="10" max="50" value="30"><span id="wingSizeValue">30</span>
+                        <label for="curlIntensity">Curl:</label><input type="range" id="curlIntensity" min="0" max="1" value="0.5" step="0.1"><span id="curlIntensityValue">0.5</span>
+                        <label for="wingOpacity">Opacity:</label><input type="range" id="wingOpacity" min="0" max="1" value="0.3" step="0.1"><span id="wingOpacityValue">0.3</span>
+                    </div>
+                    <div class="brush-toggle">
+                        <label for="brushSize">Size:</label><input type="range" id="brushSize" min="1" max="100" value="10"><span id="brushSizeValue">10</span>
+                        <label for="smoothness">Smooth:</label><input type="range" id="smoothness" min="1" max="100" value="50"><span id="smoothnessValue">50</span>
+                        <label for="opacity">Opacity:</label><input type="range" id="opacity" min="0" max="1" value="0.1" step="0.01"><span id="opacityValue">0.1</span>
+                    </div>
+                </div>
+                <div class="tab-content" id="color-tab">
+                    <div class="color-picker">
+                        <div class="color-count-container">
+                            <label for="colorCount">Colors:</label>
+                            <select id="colorCount">
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                                <option value="9">9</option>
+                                <option value="10">10</option>
+                            </select>
+                        </div>
+                        <div class="color-grid" id="colorInputs"></div>
+                        <label for="colorSamplingMethod">Sampling:</label>
+                        <select id="colorSamplingMethod">
+                            <option value="random" selected>Random</option>
+                            <option value="spatial">Spatial</option>
+                            <option value="horizontal">Horizontal</option>
+                            <option value="vertical">Vertical</option>
+                            <option value="radial">Radial</option>
+                        </select>
+                        <input type="file" id="colorImageUpload" accept="image/*">
+                        <button id="removeColorImage">Remove</button>
+                    </div>
+                </div>
+                <div class="tab-content" id="transformations-tab">
+                    <div class="symmetry-options">
+                        <h4>Symmetry:</h4>
+                        <div class="symmetry-option" data-symmetry="1">1</div>
+                        <div class="symmetry-option" data-symmetry="2">2</div>
+                        <div class="symmetry-option" data-symmetry="3">3</div>
+                        <div class="symmetry-option active" data-symmetry="4">4</div>
+                        <div class="symmetry-option" data-symmetry="5">5</div>
+                        <div class="symmetry-option" data-symmetry="6">6</div>
+                        <div class="symmetry-option" data-symmetry="7">7</div>
+                        <div class="symmetry-option" data-symmetry="8">8</div>
+                    </div>
+                    <div class="mirror-options">
+                        <h4>Mirror:</h4>
+                        <div class="mirror-option active" data-mirror="none">None</div>
+                        <div class="mirror-option" data-mirror="horizontal">Horizontal</div>
+                        <div class="mirror-option" data-mirror="vertical">Vertical</div>
+                    </div>
+                    <div class="spiral-options">
+                        <h4>Spiral:</h4>
+                        <div class="spiral-option active" data-spiral="off">Off</div>
+                        <div class="spiral-option" data-spiral="on">On</div>
+                    </div>
+                    <div class="brush-settings" id="spiralSettings" style="display: none;">
+                        <label for="spiralSteps">Steps:</label><input type="range" id="spiralSteps" min="1" max="20" value="10" step="1"><span id="spiralStepsValue">10</span>
+                    </div>
+                </div>
+                <div class="tab-content" id="background-tab">
+                    <div class="background-settings">
+                        <input type="file" id="bgImageUpload" accept="image/*">
+                        <label for="bgColor">Color 1:</label><input type="color" id="bgColor" value="#27362f">
+                        <label for="bgColor2">Color 2:</label><input type="color" id="bgColor2" value="#1a252f">
+                        <div class="gradient-toggle">
+                            <label for="gradientBg">Gradient:</label><input type="checkbox" id="gradientBg">
+                        </div>
+                        <div class="transparent-toggle">
+                            <label for="transparentBg">Transparent:</label><input type="checkbox" id="transparentBg">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="actions-row">
+            <button id="clear" data-tooltip="Clear the entire canvas" aria-label="Clear the canvas">Clear</button>
+            <button id="save" data-tooltip="Save your artwork as a PNG" aria-label="Save artwork">Save PNG</button>
+            <button id="toggleFullscreen" data-tooltip="Toggle fullscreen mode (F)" aria-label="Toggle fullscreen">Full scrn</button>
+            <button id="undo" data-tooltip="Undo the last action (Ctrl+Z)" aria-label="Undo last action">Undo</button>
+            <button id="redo" data-tooltip="Redo the last undone action" aria-label="Redo last action">Redo</button>
+            <button id="undoAll" data-tooltip="Undo all actions step-by-step" aria-label="Undo all actions">Undo All</button>
+            <button id="redoAll" data-tooltip="Redo all undone actions step-by-step" aria-label="Redo all actions">Redo All</button>
+            <button id="saveMP4" data-tooltip="Save drawing process as MP4" aria-label="Save as MP4">Save MP4</button>
+            <button id="saveGIF" data-tooltip="Save drawing process as GIF" aria-label="Save as GIF">Save GIF</button>
+            <button id="saveSVG" data-tooltip="Save artwork as SVG" aria-label="Save as SVG">Save SVG</button>
+            <div class="performance-toggle">
+                <label for="performanceMode" data-tooltip="Enable for better performance on low-end devices">LP</label>
+                <input id="performanceMode" type="checkbox" data-tooltip="Low performance Mode: limits symmetry and disables spiral effects" aria-label="Low performance mode" />
+            </div>
+            <div class="slider-container">
+                <label for="canvasResolution">Canvas Resolution:</label>
+                <select id="canvasResolution" data-tooltip="Set canvas resolution">
+                    <option value="hd">HD (1280x720)</option>
+                    <option value="fullhd" selected>Full HD (1920x1080)</option>
+                    <option value="4k">4K (3840x2160)</option>
+                </select>
+                <label for="videoResolution" data-tooltip="Video resolution for MP4/GIF">Video Resolution:</label>
+                <select id="videoResolution" aria-label="Video Resolution">
+                    <option value="720p">720p</option>
+                    <option value="1080p" selected>1080p</option>
+                </select>
+            </div>
+        </div>
+        <div id="canvas-container">
+            <div id="welcome-screen">
+                <div class="welcome-content">
+                    <h1>Welcome</h1>
+                    <p class="welcome-text">Step into a world of creativity where every stroke tells a story. Unleash your imagination with the Brush Stroke Patterns Drawing Tool!</p>
+                    <p id="quote-text" class="quote"></p>
+                    <button id="close-welcome" data-tooltip="Begin your creative journey" aria-label="Start creating">Start Creating</button>
+                </div>
+            </div>
+            <canvas id="canvas"></canvas>
+            <button id="showToolbarBtn" data-tooltip="Show the toolbar" aria-label="Show toolbar">Toolbar</button>
+            <div id="orientation-overlay">
+                <p>For the best experience<br>please switch to desktop mode.</p>
+                <button id="dismiss-overlay" data-tooltip="Continue in current mode" aria-label="Continue in current mode">Continue</button>
+            </div>
+        </div>
+    </div>
+    <footer>
+        <p>© 2025 Drawmatinc. All rights reserved. <a href="privacy.html">Privacy Policy</a> | <a href="contact.html">Contact Us</a></p>
+    </footer>
+</body>
+</html>
