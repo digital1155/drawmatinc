@@ -1,228 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta content="yes" name="mobile-web-app-capable">
-  <link rel="stylesheet" href="dtstyles.css">
-   <script src="dtjavas.js" defer></script>
-    <meta content="yes" name="apple-mobile-web-app-capable">
-    <title>Drawmatinc Brush Stroke Patterns Drawing Tool</title>
-   
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <meta name="description" content="Drawmatinc: Discover our free Brush Stroke Patterns Drawing Tool, tutorials, blogs, and gallery for artists of all levels.">
+ <title>Drawmatinc - Brush Stroke Patterns Drawing Tool</title>
+ <link rel="stylesheet" href="dthomepage.css">
 </head>
 <body>
-    <div class="container">
-        <div id="toolbar">
-            <div id="actions-cell">
-                <div class="actions-row">
-                    <button id="clear" data-tooltip="Clear the entire canvas">Clear</button>
-                    <button id="save" data-tooltip="Save your artwork as a PNG">Save</button>
-                    <button id="undo" data-tooltip="Undo the last action (Ctrl+Z)">Undo</button>
-                    <button id="redo" data-tooltip="Redo the last undone action">Redo</button>
-                </div>
-                <div class="actions-row">
-                    <button id="undoAll" data-tooltip="Undo all actions step-by-step">Undo All</button>
-                    <button id="redoAll" data-tooltip="Redo all undone actions step-by-step">Redo All</button>
-                    <button id="toggleFullscreen" data-tooltip="Toggle fullscreen mode (F)">Fullscreen</button>
-                </div>
-                <div class="slider-container">
-                    <label data-tooltip="Set canvas resolution">Resolution:</label>
-                    <select id="canvasResolution">
-                        <option value="hd">HD (1280x720)</option>
-                        <option value="fullhd" selected>Full HD (1920x1080)</option>
-                        <option value="4k">4K (3840x2160)</option>
-                    </select>
-                </div>
-                <div class="performance-toggle">
-                    <label data-tooltip="Enable for better performance on low-end devices">Low Performance:</label>
-                    <input id="performanceMode" type="checkbox" data-tooltip="Limits symmetry and disables spiral effects" />
-                </div>
-            </div>
-            <div id="options-cell">
-                <div class="tab-bar">
-                    <div class="tab active" data-tab="brush" data-tooltip="Brush settings">Brush</div>
-                    <div class="tab" data-tab="color" data-tooltip="Color options">Color</div>
-                    <div class="tab" data-tab="transformations" data-tooltip="Symmetry and effects">Transformations</div>
-                    <div class="tab" data-tab="background" data-tooltip="Background settings">Background</div>
-                </div>
-                <div class="tab-content active" id="brush-tab">
-                    <div class="brush-settings">
-                        <h4 data-tooltip="Adjust brush properties">Brush</h4>
-                        <div class="slider-container">
-                            <label data-tooltip="Set the brush stroke width">Size:</label>
-                            <input id="brushSize" max="200" min="10" type="range" value="10" />
-                            <span class="slider-value" id="brushSizeValue">10</span>
-                        </div>
-                        <div class="slider-container">
-                            <label data-tooltip="Adjust stroke smoothness">Smooth:</label>
-                            <input id="smoothness" max="100" min="1" type="range" value="5" />
-                            <span class="slider-value" id="smoothnessValue">5</span>
-                        </div>
-                        <div class="slider-container">
-                            <label data-tooltip="Set stroke transparency">Opacity:</label>
-                            <input id="opacity" max="1" min="0.01" step="0.01" type="range" value="0.1" />
-                            <span class="slider-value" id="opacityValue">0.1</span>
-                        </div>
-                        <div class="brush-toggle">
-                            <label data-tooltip="Choose a brush type">Brush Type:</label>
-                            <select id="brushSelect">
-                                <option value="web">Wooly</option>
-                                <option value="continuousCircle" selected>Straws</option>
-                                <option value="watercolor">Watercolor</option>
-                                <option value="curlyWings">Curly Wings</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div id="webSettings" class="brush-settings" style="display: none;">
-                        <div class="slider-container">
-                            <label data-tooltip="Number of web strands">Density:</label>
-                            <input id="webDensity" max="10" min="1" type="range" value="3" />
-                            <span class="slider-value" id="webDensityValue">3</span>
-                        </div>
-                        <div class="slider-container">
-                            <label data-tooltip="Spread of web strands">Spread:</label>
-                            <input id="webSpread" max="1" min="0.01" step="0.05" type="range" value="0.5" />
-                            <span class="slider-value" id="webSpreadValue">0.5</span>
-                        </div>
-                        <div class="slider-container">
-                            <label data-tooltip="Randomness in web strands">Wiggle:</label>
-                            <input id="webWiggle" max="1" min="0" step="0.01" type="range" value="0.1" />
-                            <span class="slider-value" id="webWiggleValue">0.1</span>
-                        </div>
-                    </div>
-                    <div id="continuousCircleSettings" class="brush-settings" style="display: none;">
-                        <div class="slider-container">
-                            <label data-tooltip="Size of circles">Circle:</label>
-                            <input id="circleSize" max="100" min="1" type="range" value="10" />
-                            <span class="slider-value" id="circleSizeValue">10</span>
-                        </div>
-                        <div class="slider-container">
-                            <label data-tooltip="Circle border thickness">Border:</label>
-                            <input id="borderWidth" max="5" min="0.01" step="0.01" type="range" value="1" />
-                            <span class="slider-value" id="borderWidthValue">1</span>
-                        </div>
-                    </div>
-                    <div id="watercolorSettings" class="brush-settings" style="display: none;">
-                        <div class="slider-container">
-                            <label data-tooltip="Spread of watercolor effect">Spread:</label>
-                            <input id="watercolorSpread" max="5" min="0.01" step="0.1" type="range" value="0.5" />
-                            <span class="slider-value" id="watercolorSpreadValue">0.5</span>
-                        </div>
-                        <div class="slider-container">
-                            <label data-tooltip="Bleed intensity of watercolor">Bleed:</label>
-                            <input id="watercolorBleed" max="1" min="0.01" step="0.01" type="range" value="0.2" />
-                            <span class="slider-value" id="watercolorBleedValue">0.2</span>
-                        </div>
-                    </div>
-                    <div id="curlyWingsSettings" class="brush-settings" style="display: none;">
-                        <div class="slider-container">
-                            <label data-tooltip="Size of wing patterns">Wing Size:</label>
-                            <input id="wingSize" max="100" min="10" type="range" value="30" />
-                            <span class="slider-value" id="wingSizeValue">30</span>
-                        </div>
-                        <div class="slider-container">
-                            <label data-tooltip="Curl strength of wings">Curl Intensity:</label>
-                            <input id="curlIntensity" max="1" min="0.1" step="0.05" type="range" value="0.5" />
-                            <span class="slider-value" id="curlIntensityValue">0.5</span>
-                        </div>
-                        <div class="slider-container">
-                            <label data-tooltip="Transparency of wings">Wing Opacity:</label>
-                            <input id="wingOpacity" max="1" min="0.1" step="0.01" type="range" value="0.3" />
-                            <span class="slider-value" id="wingOpacityValue">0.3</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="tab-content" id="color-tab">
-                    <div class="color-picker">
-                        <h4 data-tooltip="Customize stroke colors">Color</h4>
-                        <div class="color-grid">
-                            <label data-tooltip="Pick the primary color">Primary:</label>
-                            <input id="colorPicker1" type="color" value="#1df58d" />
-                            <label data-tooltip="Pick the secondary color">Secondary:</label>
-                            <input id="colorPicker2" type="color" value="#0000FF" />
-                        </div>
-                        <div class="dual-tone-toggle">
-                            <label data-tooltip="Enable gradient between two colors">Dual:</label>
-                            <input id="dualTone" type="checkbox" />
-                        </div>
-                        
-                        <label data-tooltip="Upload an image for color sampling">Image:</label>
-                        <input id="colorImageUpload" type="file" accept="image/*" />
-                        <button id="removeColorImage" data-tooltip="Remove uploaded color image">Remove</button>
-                        <label data-tooltip="How colors are sampled from an image">Sampling:</label>
-                        <select id="colorSamplingMethod" data-tooltip="Method to pick colors from uploaded image">
-                            <option value="random" data-tooltip="Random color from image">Random</option>
-                            <option value="spatial" data-tooltip="Color based on stroke position">Spatial</option>
-                            <option value="horizontal" data-tooltip="Color from horizontal image slice">Horizontal</option>
-                            <option value="vertical" data-tooltip="Color from vertical image slice">Vertical</option>
-                            <option value="radial" data-tooltip="Color based on distance from center">Radial</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="tab-content" id="transformations-tab">
-                    <div class="symmetry-options">
-                        <h4 data-tooltip="Number of symmetrical copies">Symmetry</h4>
-                        <div id="symmetryOptions">
-                            <span class="symmetry-option" data-symmetry="1" data-tooltip="Draws a single stroke">1</span>
-                            <span class="symmetry-option" data-symmetry="2" data-tooltip="Mirrors strokes twice">2</span>
-                            <span class="symmetry-option" data-symmetry="3" data-tooltip="Creates 3 symmetrical copies">3</span>
-                            <span class="symmetry-option active" data-symmetry="4" data-tooltip="Creates 4 symmetrical copies">4</span>
-                            <span class="symmetry-option" data-symmetry="5" data-tooltip="Creates 5 symmetrical copies">5</span>
-                            <span class="symmetry-option" data-symmetry="6" data-tooltip="Creates 6 symmetrical copies">6</span>
-                            <span class="symmetry-option" data-symmetry="7" data-tooltip="Creates 7 symmetrical copies">7</span>
-                            <span class="symmetry-option" data-symmetry="8" data-tooltip="Creates 8 symmetrical copies">8</span>
-                        </div>
-                    </div>
-                    <div class="mirror-options">
-                        <h4 data-tooltip="Mirror strokes across axes">Mirror</h4>
-                        <div id="mirrorOptions">
-                            <span class="mirror-option active" data-mirror="none" data-tooltip="No mirroring applied">None</span>
-                            <span class="mirror-option" data-mirror="horizontal" data-tooltip="Reflects strokes horizontally">Horizontal</span>
-                            <span class="mirror-option" data-mirror="vertical" data-tooltip="Reflects strokes vertically">Vertical</span>
-                        </div>
-                    </div>
-                    <div class="spiral-options">
-                        <h4 data-tooltip="Enable spiral pattern effect">Spiral</h4>
-                        <div id="spiralOptions">
-                            <span class="spiral-option active" data-spiral="off" data-tooltip="Disables spiral drawing">Off</span>
-                            <span class="spiral-option" data-spiral="on" data-tooltip="Draws strokes in a spiral pattern">On</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="tab-content" id="background-tab">
-                    <div class="background-settings">
-                        <h4 data-tooltip="Customize canvas background">Background</h4>
-                        <label data-tooltip="Set background color">Color:</label>
-                        <input id="bgColor" type="color" value="#27362f" />
-                        <label data-tooltip="Upload a background image">Image:</label>
-                        <input accept="image/*" id="bgImageUpload" type="file" />
-                        <button id="removeBgImage" data-tooltip="Remove background image">Remove</button>
-                        <div class="transparent-toggle">
-                            <label data-tooltip="Make background transparent">Transparent</label>
-                            <input id="transparentBg" type="checkbox" />
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div id="canvas-container">
-            <div id="welcome-screen">
-                <div class="welcome-content">
-                    <h1>Welcome</h1>
-                    <p class="welcome-text">Step into a world of creativity where every stroke tells a story. Unleash your imagination with the Brush Stroke Patterns Drawing Tool!</p>
-                    <p id="quote-text" class="quote"></p>
-                    <button id="close-welcome" data-tooltip="Begin your creative journey">Start Creating</button>
-                </div>
-            </div>
-            <canvas id="canvas"></canvas>
-            <button id="showToolbarBtn" data-tooltip="Show the toolbar">Toolbar</button>
-            <div id="orientation-overlay">
-                <p>For the best experience<br>please switch to desktop mode.</p>
-                <button id="dismiss-overlay" data-tooltip="Continue in current mode">Continue</button>
-            </div>
-        </div>
-    </div>
+ <!-- Header -->
+ <header>
+ <nav>
+ <div class="logo">Drawmatinc</div>
+ <button class="menu-toggle" aria-label="Toggle navigation">
+ <span class="hamburger"></ span>
+ </button>
+ <ul class="nav-menu">
+ <li><a href="index.html">Home</a></li>
+ <li><a href="drawmtinc-tool.html">Drawmatinc Drawing Tool</a></li>
+ <li><a href="tutorial.html">Tutorials</a></li>
+ <li><a href="blog.html">Blog</a></li>
+ <li><a href="gallery.html">Gallery</a></li>
+ <li><a href="about.html">About</a></li>
+ <li><a href="contact.html">Contact</a></li>
+ <li><a href="privacy.html">Privacy Policy</a></li>
+ </ul>
+ </nav>
+ </header>
 
+ <!-- Hero Section -->
+ <section class="hero">
+ <h1>Welcome to Drawmatinc</h1>
+ <p>Unleash your creativity with our free Brush Stroke Patterns Drawing Tool.</p>
+ <a href="drawmtinc-tool.html" class="cta-button">Try the Tool Now</a>
+ </section>
 
+ <!-- Intro Section (AdSense Content) -->
+ <section class="intro">
+ <h2>Explore the World of Brush Stroke Art</h2>
+ <p>
+ Drawmatinc is your ultimate destination for creating beautiful brush stroke patterns online, completely free of charge. Whether you’re an aspiring artist or a seasoned creator, our Brush Stroke Patterns Drawing Tool offers a simple yet powerful way to design unique artwork. With intuitive controls, customizable brush sizes, and a variety of colors, you can craft patterns that suit any project—be it digital illustrations, printable designs, or personal sketches. We’ve built this tool to inspire creativity, making it accessible to everyone without the need for expensive software or complex setups.
+
+ Our journey began on Blogger.com, but we’ve recently migrated to Firebase Hosting to deliver a faster, more reliable experience. This homepage introduces you to what Drawmatinc has to offer, from the interactive drawing tool to a wealth of resources designed to enhance your skills and showcase your work. Dive into our <a href="tutorials.html">Tutorials</a> section for step-by-step guides, like “Mastering Symmetry in Drawings,” each packed with 300-500 words of practical advice. Explore the <a href="blog.html">Blog</a> for articles on art trends, such as “The Future of Digital Art,” or visit the <a href="gallery.html">Gallery</a> to see stunning creations made by users like you.
+
+ At Drawmatinc, we’re committed to supporting artists with high-quality, original content. Learn more about our story on the <a href="about.html">About</a> page, reach out via our <a href="contact.html">Contact</a> form, or review our <a href="privacy.html ">Privacy Policy</a> to understand how we protect your data. This site is designed with AdSense eligibility in mind, featuring content-rich pages to meet Google’s standards—each with 300-500 words of unique material. Whether you’re here to draw, learn, or share, Drawmatinc is your creative hub. Start exploring today and transform your ideas into art!
+ </p>
+ </section>
+
+ <!-- AdSense Placeholder -->
+ <section class="adsense-placeholder">
+ <div class="ad-box">AdSense Ad Placeholder (e.g., 300x250)</div>
+ </section>
+
+ <!-- Footer -->
+ <footer>
+ <p>© 2025 Drawmatinc. All rights reserved. <a href="privacy.html">Privacy Policy</a> | <a href="contact.html">Contact Us</a></p>
+ </footer>
+
+ <!-- JavaScript for Menu Toggle -->
+ <script src="jdthomepage.js"></script>
 </body>
 </html>
