@@ -1,3 +1,7 @@
+
+document.querySelector('.nav-select').addEventListener('change', function() {
+    window.location.href = this.value;
+});
 // Core Setup and Variables
 const DrawingApp = {
     canvas: null,
