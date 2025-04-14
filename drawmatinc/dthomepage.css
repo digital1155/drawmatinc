@@ -156,12 +156,12 @@ nav {
 .slideshow-track {
   display: flex;
   animation: slide 20s linear infinite;
-  width: calc(150px * 10); /* 10 images, each 150px wide */
+  width: calc(300px * 10); /* 10 images, each 150px wide */
   height: 100%;
 }
 
 .slideshow-track img {
-  width: 150px;
+  width: 300px;
   height: 100%;
   object-fit: cover;
   margin: 0 5px;
@@ -192,7 +192,7 @@ nav {
     transform: translateX(0);
   }
   100% {
-    transform: translateX(calc(-150px * 5 - 5px * 5)); /* Move left by 5 images + gaps */
+    transform: translateX(calc(-300px * 5 - 5px * 5)); /* Move left by 5 images + gaps */
   }
 }
 
