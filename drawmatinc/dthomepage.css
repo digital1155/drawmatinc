@@ -1,297 +1,319 @@
 /* Reset and General Styles */
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+body, html {
+  margin: 0;
+  padding: 0;
+  height: auto;
+  background: #1a1a1a;
+  color: #fff;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  overflow: visible;
+}
+
+/* Header */
+header {
+  background: #2c3e50;
+  color: white;
+  padding: 1rem;
+  position: fixed;
+  width: 100%;
+  top: 0;
+  z-index: 1000;
+}
+
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.logo img {
+  border-radius: 5%;
+  width: 100px;
+  height: 30px;
+}
+
+.menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+.hamburger {
+  display: block;
+  width: 25px;
+  height: 3px;
+  background: white;
+  position: relative;
+}
+
+.hamburger::before,
+.hamburger::after {
+  content: '';
+  width: 25px;
+  height: 3px;
+  background: white;
+  position: absolute;
+  left: 0;
+}
+
+.hamburger::before {
+  top: -8px;
+}
+
+.hamburger::after {
+  bottom: -8px;
+}
+
+.nav-menu {
+  list-style: none;
+  display: flex;
+  gap: 1rem;
+}
+
+.nav-menu li a {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.nav-menu li a:hover {
+  color: #3498db;
+}
+
+/* Hero Section */
+.hero {
+  position: relative;
+  text-align: center;
+  padding: 6rem 2rem;
+  margin-top: 4rem; /* Accounts for fixed header */
+  min-height: 400px;
+  overflow: hidden;
+  color: white;
+  z-index: 1;
+}
+
+.hero h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  position: relative;
+  z-index: 2;
+  color: #ffffff;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+.hero p {
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+  position: relative;
+  z-index: 2;
+  color: #ffffff;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+.cta-button {
+  background: #e74c3c;
+  color: white;
+  padding: 1rem 2rem;
+  text-decoration: none;
+  border-radius: 5px;
+  font-weight: bold;
+  position: relative;
+  z-index: 2;
+}
+
+.cta-button:hover {
+  background: #c0392b;
+}
+
+/* Slideshow Styles */
+.slideshow-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5); /* Adds contrast for PNG transparency */
+  overflow: hidden;
+  z-index: 0;
+}
+
+.slideshow-track {
+  display: flex;
+  animation: slide 20s linear infinite;
+  width: calc(150px * 10); /* 10 images, each 150px wide */
+  height: 100%;
+}
+
+.slideshow-track img {
+  width: 150px;
+  height: 100%;
+  object-fit: cover;
+  margin: 0 5px;
+  opacity: 1; /* Full opacity for clarity */
+  transform: scale(0.8);
+  transition: transform 0.5s ease, opacity 0.5s ease;
+}
+
+/* Middle image effect */
+.slideshow-track img:nth-child(3),
+.slideshow-track img:nth-child(8) {
+  transform: scale(1);
+  opacity: 1;
+}
+
+/* Nearby images */
+.slideshow-track img:nth-child(2),
+.slideshow-track img:nth-child(4),
+.slideshow-track img:nth-child(7),
+.slideshow-track img:nth-child(9) {
+  transform: scale(0.9);
+  opacity: 0.85;
+}
+
+/* Animation for sliding */
+@keyframes slide {
+  0% {
+    transform: translateX(0);
   }
-  
-  body, html {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    background: #1a1a1a;
-    color: #fff;
-    font-family: 'Segoe UI', Arial, sans-serif;
-    overflow: auto;
+  100% {
+    transform: translateX(calc(-150px * 5 - 5px * 5)); /* Move left by 5 images + gaps */
   }
-  
-  /* Header */
-  header {
-    background: #2c3e50;
-    color: white;
-    padding: 1rem;
-    position: fixed;
-    width: 100%;
-    top: 0;
-    z-index: 1000; /* Increased to prevent overlap issues */
-  }
-  
-  nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-  
-  .logo {
-    font-size: 1.5rem;
-    font-weight: bold;
-  }
-  
+}
+
+/* Intro Section */
+.intro {
+  max-width: 1200px;
+  margin: 450px auto 4rem; /* Accounts for hero height */
+  padding: 0 2rem;
+}
+
+.intro h2 {
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-size: 2rem;
+}
+
+.intro p {
+  font-size: 1.1rem;
+  line-height: 1.8;
+}
+
+.intro a {
+  color: #3498db;
+  text-decoration: none;
+}
+
+.intro a:hover {
+  text-decoration: underline;
+}
+
+/* AdSense Placeholder */
+.adsense-placeholder {
+  max-width: 1200px;
+  margin: 4rem auto;
+  padding: 0 2rem;
+  text-align: center;
+}
+
+.ad-box {
+  background: #ddd;
+  padding: 2rem;
+  border: 1px dashed #999;
+  display: inline-block;
+  color: #333;
+}
+
+/* Footer */
+footer {
+  background: #2c3e50;
+  color: white;
+  text-align: center;
+  padding: 1rem;
+}
+
+footer a {
+  color: #3498db;
+  text-decoration: none;
+}
+
+footer a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
   .menu-toggle {
-    display: none; /* Hidden on desktop */
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0.5rem;
-  }
-  
-  .hamburger {
     display: block;
-    width: 25px;
-    height: 3px;
-    background: white;
-    position: relative;
   }
-  
-  .hamburger::before,
-  .hamburger::after {
-    content: '';
-    width: 25px;
-    height: 3px;
-    background: white;
-    position: absolute;
-    left: 0;
-  }
-  
-  .hamburger::before {
-    top: -8px;
-  }
-  
-  .hamburger::after {
-    bottom: -8px;
-  }
-  
+
   .nav-menu {
-    list-style: none;
-    display: flex;
-    gap: 1rem;
-  }
-  
-  .nav-menu li a {
-    color: white;
-    text-decoration: none;
-    font-weight: 500;
-  }
-  
-  .nav-menu li a:hover {
-    color: #3498db;
-  }
-  
-  /* Hero Section */
-  .hero {
-    position: relative;
-    text-align: center;
-    padding: 6rem 2rem;
-    margin-top: 4rem;
-    overflow: hidden;
-    color: white;
-    z-index: 1;
-  }
-  
-  /* Ensure hero content is above slideshow */
-  .hero h1, .hero p, .hero .cta-button {
-    position: relative;
-    z-index: 2;
-    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5); /* Added for readability */
-  }
-  
-  .hero h1 {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-  }
-  
-  .hero p {
-    font-size: 1.2rem;
-    margin-bottom: 2rem;
-  }
-  
-  .cta-button {
-    background: #e74c3c;
-    color: white;
-    padding: 1rem 2rem;
-    text-decoration: none;
-    border-radius: 5px;
-    font-weight: bold;
-  }
-  
-  .cta-button:hover {
-    background: #c0392b;
-  }
-  
-  /* Slideshow Styles */
-  .slideshow-container {
-    position: absolute;
-    top: 0;
-    left: 0;
+    display: none;
+    flex-direction: column;
     width: 100%;
-    height: 100%;
-    overflow: hidden;
-    z-index: 0;
+    background: #2c3e50;
+    position: absolute;
+    top: 60px;
+    left: 0;
+    padding: 1rem 0;
   }
-  
-  .slideshow-track {
+
+  .nav-menu.active {
     display: flex;
-    animation: slide 20s linear infinite;
-    width: calc(200px * 10); /* 10 images, each 200px wide */
-    height: 100%;
   }
-  
+
+  .nav-menu li {
+    text-align: center;
+    padding: 0.5rem 0;
+  }
+
+  .hero {
+    padding: 4rem 1rem;
+    min-height: 300px;
+  }
+
+  .hero h1 {
+    font-size: 2rem;
+  }
+
+  .hero p {
+    font-size: 1rem;
+  }
+
+  .slideshow-track {
+    width: calc(100px * 10); /* Smaller images on mobile */
+  }
+
   .slideshow-track img {
-    width: 200px;
-    height: 150px;
-    object-fit: cover;
-    margin: 0 10px;
-    opacity: 0.7;
-    transform: scale(0.8);
-    transition: transform 0.5s ease, opacity 0.5s ease;
+    width: 100px;
+    margin: 0 3px;
   }
-  
-  /* Middle image effect (approximated by position) */
-  .slideshow-track img:nth-child(3),
-  .slideshow-track img:nth-child(8) {
-    transform: scale(1);
-    opacity: 1;
-  }
-  
-  /* Nearby images */
-  .slideshow-track img:nth-child(2),
-  .slideshow-track img:nth-child(4),
-  .slideshow-track img:nth-child(7),
-  .slideshow-track img:nth-child(9) {
-    transform: scale(0.9);
-    opacity: 0.85;
-  }
-  
-  /* Animation for sliding */
+
   @keyframes slide {
     0% {
       transform: translateX(0);
     }
     100% {
-      transform: translateX(calc(-200px * 5 - 10px * 5)); /* Move left by 5 images + gaps */
+      transform: translateX(calc(-100px * 5 - 3px * 5));
     }
   }
-  
-  /* Intro Section */
+
   .intro {
-    max-width: 1200px;
-    margin: 4rem auto;
-    padding: 0 2rem;
+    margin-top: 350px; /* Adjusted for smaller hero */
   }
-  
-  .intro h2 {
-    margin-bottom: 1.5rem;
-    text-align: center;
-  }
-  
-  .intro p {
-    font-size: 1.1rem;
-    line-height: 1.8;
-  }
-  
-  .intro a {
-    color: #3498db;
-    text-decoration: none;
-  }
-  
-  .intro a:hover {
-    text-decoration: underline;
-  }
-  
-  /* AdSense Placeholder */
-  .adsense-placeholder {
-    max-width: 1200px;
-    margin: 4rem auto;
-    padding: 0 2rem;
-    text-align: center;
-  }
-  
-  .ad-box {
-    background: #ddd;
-    padding: 2rem;
-    border: 1px dashed #999;
-    display: inline-block;
-  }
-  
-  /* Footer */
-  footer {
-    background: #2c3e50;
-    color: white;
-    text-align: center;
-    padding: 1rem;
-  }
-  
-  footer a {
-    color: #3498db;
-    text-decoration: none;
-  }
-  
-  /* Responsive Design */
-  @media (max-width: 768px) {
-    .menu-toggle {
-      display: block; /* Show hamburger on mobile */
-    }
-  
-    .nav-menu {
-      display: none; /* Hidden by default on mobile */
-      flex-direction: column;
-      width: 100%;
-      background: #2c3e50;
-      position: absolute;
-      top: 60px;
-      left: 0;
-      padding: 1rem 0;
-    }
-  
-    .nav-menu.active {
-      display: flex; /* Show when toggled */
-    }
-  
-    .nav-menu li {
-      text-align: center;
-      padding: 0.5rem 0;
-    }
-  
-    .hero {
-      padding: 4rem 1rem;
-    }
-  
-    .hero h1 {
-      font-size: 2rem;
-    }
-  
-    .hero p {
-      font-size: 1rem;
-    }
-  
-    .slideshow-track {
-      width: calc(150px * 10); /* Smaller images on mobile */
-    }
-  
-    .slideshow-track img {
-      width: 150px;
-      margin: 0 5px;
-    }
-  
-    @keyframes slide {
-      0% {
-        transform: translateX(0);
-      }
-      100% {
-        transform: translateX(calc(-150px * 5 - 5px * 5));
-      }
-    }
-  }
+}
