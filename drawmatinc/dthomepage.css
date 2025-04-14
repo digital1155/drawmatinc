@@ -155,8 +155,8 @@ nav {
 
 .slideshow-track {
   display: flex;
-  animation: slide 20s steps(10) infinite; /* 20s for 10 images, 2s each */
-  width: calc(160px * 10); /* 10 images, each 160px wide */
+  animation: slide 20s linear infinite; /* Smooth linear animation */
+  width: calc((160px + 10px) * 10); /* 10 images, 160px wide + 10px total margin */
   height: 100%;
 }
 
@@ -165,7 +165,7 @@ nav {
   height: auto;
   aspect-ratio: 16 / 9; /* Maintains 16:9 aspect ratio */
   object-fit: cover;
-  margin: 0 5px;
+  margin: 0 5px; /* 5px margin on each side = 10px total per image */
   opacity: 1;
   transform: scale(0.8);
   transition: transform 0.5s ease, opacity 0.5s ease;
@@ -193,7 +193,7 @@ nav {
     transform: translateX(0);
   }
   100% {
-    transform: translateX(calc(-160px * 5 - 5px * 5)); /* Move left by 5 images + gaps */
+    transform: translateX(calc(-1 * (160px + 10px) * 5)); /* Move left by 5 images */
   }
 }
 
@@ -297,15 +297,15 @@ footer a:hover {
   }
 
   .slideshow-track {
-    width: calc(100px * 10);
-    animation: slide 20s steps(10) infinite; /* Same timing on mobile */
+    width: calc((100px + 6px) * 10); /* 100px wide + 6px total margin */
+    animation: slide 20s linear infinite;
   }
 
   .slideshow-track img {
     width: 100px;
     height: auto;
     aspect-ratio: 16 / 9;
-    margin: 0 3px;
+    margin: 0 3px; /* 3px each side = 6px total */
   }
 
   @keyframes slide {
@@ -313,7 +313,7 @@ footer a:hover {
       transform: translateX(0);
     }
     100% {
-      transform: translateX(calc(-100px * 5 - 3px * 5));
+      transform: translateX(calc(-1 * (100px + 6px) * 5));
     }
   }
 
