@@ -155,45 +155,77 @@ nav {
 
 .slideshow-track {
   display: flex;
-  animation: slide 100s linear infinite; /* Smooth linear animation */
-  width: calc((33% + 10px) * 10); /* 10 images, 160px wide + 10px total margin */
   height: 100%;
 }
 
+.foreground-track {
+  animation: slide-foreground 20s linear infinite;
+  width: calc((160px + 10px) * 10); /* 10 images, 160px + 10px margin */
+  z-index: 2;
+}
+
+.background-track {
+  animation: slide-background 30s linear infinite; /* Slower for parallax */
+  width: calc((160px + 10px) * 10);
+  z-index: 1;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
 .slideshow-track img {
-  width: 33%;
+  width: 160px;
   height: auto;
-  aspect-ratio: 16 / 9; /* Maintains 16:9 aspect ratio */
+  aspect-ratio: 16 / 9;
   object-fit: cover;
-  margin: 0 5px; /* 5px margin on each side = 10px total per image */
+  margin: 0 5px; /* 5px each side = 10px total */
+}
+
+.foreground-track img {
   opacity: 1;
   transform: scale(0.8);
   transition: transform 0.5s ease, opacity 0.5s ease;
 }
 
-/* Middle image effect */
-.slideshow-track img:nth-child(3),
-.slideshow-track img:nth-child(8) {
+/* Middle image effect for foreground */
+.foreground-track img:nth-child(3),
+.foreground-track img:nth-child(8) {
   transform: scale(1);
   opacity: 1;
 }
 
-/* Nearby images */
-.slideshow-track img:nth-child(2),
-.slideshow-track img:nth-child(4),
-.slideshow-track img:nth-child(7),
-.slideshow-track img:nth-child(9) {
+/* Nearby images for foreground */
+.foreground-track img:nth-child(2),
+.foreground-track img:nth-child(4),
+.foreground-track img:nth-child(7),
+.foreground-track img:nth-child(9) {
   transform: scale(0.9);
   opacity: 0.85;
 }
 
-/* Animation for sliding */
-@keyframes slide {
+.background-track img {
+  opacity: 0.4; /* Dimmer for depth */
+  filter: blur(2px); /* Slight blur for background */
+  transform: scale(0.7);
+}
+
+/* Animation for foreground */
+@keyframes slide-foreground {
   0% {
     transform: translateX(0);
   }
   100% {
-    transform: translateX(calc(-1 * (160px + 10px) * 5)); /* Move left by 5 images */
+    transform: translateX(calc(-1 * (160px + 10px) * 5));
+  }
+}
+
+/* Animation for background */
+@keyframes slide-background {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(calc(-1 * (160px + 10px) * 5));
   }
 }
 
@@ -296,19 +328,51 @@ footer a:hover {
     font-size: 1rem;
   }
 
-  .slideshow-track {
-    width: calc((100px + 6px) * 10); /* 100px wide + 6px total margin */
-    animation: slide 20s linear infinite;
+  .foreground-track {
+    width: calc((100px + 6px) * 10);
+    animation: slide-foreground 20s linear infinite;
+  }
+
+  .background-track {
+    width: calc((100px + 6px) * 10);
+    animation: slide-background 30s linear infinite;
   }
 
   .slideshow-track img {
     width: 100px;
-    height: auto;
-    aspect-ratio: 16 / 9;
     margin: 0 3px; /* 3px each side = 6px total */
   }
 
-  @keyframes slide {
+  .foreground-track img {
+    transform: scale(0.8);
+  }
+
+  .foreground-track img:nth-child(3),
+  .foreground-track img:nth-child(8) {
+    transform: scale(1);
+  }
+
+  .foreground-track img:nth-child(2),
+  .foreground-track img:nth-child(4),
+  .foreground-track img:nth-child(7),
+  .foreground-track img:nth-child(9) {
+    transform: scale(0.9);
+  }
+
+  .background-track img {
+    transform: scale(0.7);
+  }
+
+  @keyframes slide-foreground {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(calc(-1 * (100px + 6px) * 5));
+    }
+  }
+
+  @keyframes slide-background {
     0% {
       transform: translateX(0);
     }
