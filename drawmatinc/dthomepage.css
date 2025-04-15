@@ -156,7 +156,7 @@ nav {
 .slideshow-track {
   display: flex;
   animation: slide 40s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
-  width: calc((33% + 10px) * 10);
+  width: calc((20% + 10px) * 10);
   height:60%;
 }
 @keyframes slide {
@@ -164,7 +164,7 @@ nav {
   100% { transform: translateX(calc(-1 * (33% + 1px) * 5)); }
 }
 .slideshow-track img {
-  width: 33%;
+  width: 20%;
   height: 30%;
   aspect-ratio: 16 / 9; /* Maintains 16:9 aspect ratio */
   object-fit: cover;
