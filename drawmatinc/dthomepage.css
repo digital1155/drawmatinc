@@ -156,12 +156,12 @@ nav {
 .slideshow-track {
   display: flex;
   animation: slide 20s linear infinite; /* Smooth linear animation */
-  width: calc(100% * 10); /* 10 images, 160px wide + 10px total margin */
+  width: calc((200px + 10px) * 10); /* 10 images, 160px wide + 10px total margin */
   height: 100%;
 }
 
 .slideshow-track img {
-  width: 100%;
+  width: 200px;
   height: auto;
   aspect-ratio: 16 / 9; /* Maintains 16:9 aspect ratio */
   object-fit: cover;
@@ -193,7 +193,7 @@ nav {
     transform: translateX(0);
   }
   100% {
-    transform: translateX(calc(-1 * 100% * 5)); /* Move left by 5 images */
+    transform: translateX(calc(-1 * (160px + 10px) * 5)); /* Move left by 5 images */
   }
 }
 
