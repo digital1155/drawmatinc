@@ -165,7 +165,7 @@ nav {
 }
 .slideshow-track img {
   width: 33%;
-  height: 30%;
+  height: 80%;
   aspect-ratio: 16 / 9; /* Maintains 16:9 aspect ratio */
   object-fit: cover;
   margin: 0 5px; /* 5px margin on each side = 10px total per image */
