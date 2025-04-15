@@ -156,12 +156,12 @@ nav {
 .slideshow-track {
   display: flex;
   animation: slide 200s linear infinite; /* Smooth linear animation */
-  width: calc((200px + 10px) * 10); /* 10 images, 160px wide + 10px total margin */
+  width: calc((100% + 10px) * 10); /* 10 images, 160px wide + 10px total margin */
   height: 100%;
 }
 
 .slideshow-track img {
-  width: 200px;
+  width: 100%;
   height: auto;
   aspect-ratio: 16 / 9; /* Maintains 16:9 aspect ratio */
   object-fit: cover;
