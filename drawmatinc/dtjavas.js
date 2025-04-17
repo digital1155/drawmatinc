@@ -1,5 +1,3 @@
-
-
 // Core Setup and Variables
 const DrawingApp = {
     canvas: null,
@@ -35,7 +33,6 @@ const DrawingApp = {
     actions: [],
     redoStack: [],
     strokes: [],
-    svgPaths: [], // For SVG export
     bgImage: null,
     colors: ['#1df58d'],
     colorCount: 1,
@@ -46,14 +43,13 @@ const DrawingApp = {
     isDrawingStarted: false,
     lowPerformanceMode: false,
     spiralSteps: 10,
-    scale: 1, // For pinch-to-zoom
+    scale: 1,
     initialDistance: 0,
     initialScale: 1,
-    recording: false, // For MP4
+    recording: false,
     mediaRecorder: null,
     recordedChunks: [],
     frameRate: 30,
-    gifRecorder: null, // For GIF
     ASPECT_RATIO: 16 / 9,
     lastDrawTime: 0,
     defaultColors: ['#1df58d', '#0000FF', '#FF0000', '#FFFF00', '#00FF00', '#FF00FF', '#00FFFF', '#800080', '#FFA500', '#808080']
@@ -224,7 +220,6 @@ function draw(e) {
     if (!app.isDrawingStarted) {
         app.isDrawingStarted = true;
         if (!app.recording) startMP4Recording();
-        if (!app.gifRecorder) startGIFRecording();
     }
 
     if (app.lastX !== undefined && app.lastY !== undefined) {
@@ -233,7 +228,6 @@ function draw(e) {
         const distance = Math.sqrt(dx * dx + dy * dy);
         app.offscreenCtx.clearRect(0, 0, app.offscreenCanvas.width, app.offscreenCanvas.height);
         app.offscreenCtx.globalCompositeOperation = 'lighter';
-        let pathData = `M ${app.lastX} ${app.lastY} L ${currentX} ${currentY}`;
         const strokePoints = [];
         for (let i = 0; i <= distance; i += app.smoothness) {
             const point = i / distance;
@@ -250,12 +244,6 @@ function draw(e) {
         app.strokes.push({ points: strokePoints, brush: app.currentBrush, size: adjustedBrushSize, color, opacity: app.opacity });
         app.actions.push({ imageData: app.persistentCtx.getImageData(0, 0, app.canvas.width, app.canvas.height), strokes: strokePoints, brush: app.currentBrush, size: adjustedBrushSize, color, opacity: app.opacity });
         app.redoStack = [];
-        if (app.gifRecorder) app.gifRecorder.addFrame(app.canvas, { copy: true, delay: 33 });
-        if (app.currentBrush !== 'continuousCircle') {
-            app.svgPaths.push(`<path d="${pathData}" stroke="${color}" stroke-width="${adjustedBrushSize}" opacity="${app.opacity}" fill="none"/>`);
-        } else {
-            app.svgPaths.push(`<circle cx="${currentX}" cy="${currentY}" r="${adjustedCircleSize}" fill="none" stroke="${color}" stroke-width="${app.borderWidth}" opacity="${app.opacity}"/>`);
-        }
     }
     app.lastX = currentX;
     app.lastY = currentY;
@@ -525,95 +513,6 @@ function startMP4Recording() {
     replayFrame();
 }
 
-function startGIFRecording() {
-    const app = DrawingApp;
-    if (app.gifRecorder) return;
-    if (app.actions.length === 0) {
-        showNotification('No drawing actions to record.', 'error');
-        return;
-    }
-
-    const videoRes = getVideoResolution();
-    const recordingCanvas = document.createElement('canvas');
-    recordingCanvas.width = videoRes.width;
-    recordingCanvas.height = videoRes.height;
-    const recordingCtx = recordingCanvas.getContext('2d');
-
-    try {
-        app.gifRecorder = new GIF({
-            workers: 2,
-            quality: 10,
-            width: recordingCanvas.width,
-            height: recordingCanvas.height,
-            workerScript: 'https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js'
-        });
-    } catch (error) {
-        showNotification('Failed to initialize GIF recording.', 'error');
-        console.error(error);
-        return;
-    }
-
-    app.gifRecorder.on('finished', (blob) => {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `drawing_process_${videoRes.width}x${videoRes.height}.gif`;
-        link.click();
-        URL.revokeObjectURL(url);
-        showNotification(`GIF saved at ${videoRes.width}x${videoRes.height}`, 'success');
-        app.gifRecorder = null;
-        document.getElementById('saveGIF').textContent = 'Save GIF';
-    });
-    app.gifRecorder.on('error', (error) => {
-        showNotification('GIF recording failed.', 'error');
-        console.error('GIF Error:', error);
-    });
-
-    document.getElementById('saveGIF').textContent = 'Stop GIF';
-
-    recordingCtx.clearRect(0, 0, recordingCanvas.width, recordingCanvas.height);
-    drawBackground(recordingCtx);
-
-    let frameIndex = 0;
-    const frameDelay = 33;
-
-    function replayFrameForGIF() {
-        if (frameIndex < app.actions.length && app.gifRecorder) {
-            recordingCtx.putImageData(app.actions[frameIndex].imageData, 0, 0);
-            app.gifRecorder.addFrame(recordingCtx, { copy: true, delay: frameDelay });
-            frameIndex++;
-            setTimeout(replayFrameForGIF, frameDelay);
-        } else if (app.gifRecorder) {
-            app.gifRecorder.render();
-        }
-    }
-
-    replayFrameForGIF();
-}
-
-function saveAsSVG() {
-    const app = DrawingApp;
-    let svgContent = `<svg width="${app.canvas.width}" height="${app.canvas.height}" xmlns="http://www.w3.org/2000/svg">`;
-    if (!app.transparentBg) {
-        if (app.gradientBg) {
-            svgContent += `<defs><linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:${app.bgColor};stop-opacity:1" /><stop offset="100%" style="stop-color:${app.bgColor2};stop-opacity:1" /></linearGradient></defs><rect width="100%" height="100%" fill="url(#bgGradient)" />`;
-        } else {
-            svgContent += `<rect width="100%" height="100%" fill="${app.bgColor}" />`;
-        }
-    }
-    if (app.bgImage) svgContent += `<image width="100%" height="100%" xlink:href="${app.bgImage.src}" />`;
-    svgContent += app.svgPaths.join('');
-    svgContent += '</svg>';
-    const blob = new Blob([svgContent], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'artwork.svg';
-    link.click();
-    URL.revokeObjectURL(url);
-    showNotification('SVG saved successfully', 'success');
-}
-
 // UI and Initialization
 document.addEventListener('DOMContentLoaded', () => {
     const app = DrawingApp;
@@ -623,6 +522,12 @@ document.addEventListener('DOMContentLoaded', () => {
     app.persistentCtx = app.persistentCanvas.getContext('2d');
     app.offscreenCanvas = document.createElement('canvas');
     app.offscreenCtx = app.offscreenCanvas.getContext('2d');
+
+    // Hide GIF and SVG buttons if they exist
+    const saveGIFButton = document.getElementById('saveGIF');
+    const saveSVGButton = document.getElementById('saveSVG');
+    if (saveGIFButton) saveGIFButton.style.display = 'none';
+    if (saveSVGButton) saveSVGButton.style.display = 'none';
 
     const quotes = [
         "Art is not what you see, but what you make others see....:Edgar Degas",
@@ -993,17 +898,11 @@ document.addEventListener('DOMContentLoaded', () => {
         app.actions = [];
         app.redoStack = [];
         app.strokes = [];
-        app.svgPaths = [];
         app.isDrawingStarted = false;
         if (app.recording) {
             app.mediaRecorder.stop();
             app.recording = false;
             document.getElementById('saveMP4').textContent = 'Save MP4';
-        }
-        if (app.gifRecorder) {
-            app.gifRecorder.render();
-            app.gifRecorder = null;
-            document.getElementById('saveGIF').textContent = 'Save GIF';
         }
         showNotification('Canvas cleared!', 'success');
     });
@@ -1026,18 +925,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.getElementById('saveGIF').addEventListener('click', () => {
-        if (!app.gifRecorder) {
-            startGIFRecording();
-        } else {
-            app.gifRecorder.render();
-            app.gifRecorder = null;
-            document.getElementById('saveGIF').textContent = 'Save GIF';
-        }
-    });
-
-    document.getElementById('saveSVG').addEventListener('click', saveAsSVG);
-
     document.getElementById('undo').addEventListener('click', () => {
         if (app.actions.length > 1) {
             app.redoStack.push(app.actions.pop());
@@ -1047,7 +934,6 @@ document.addEventListener('DOMContentLoaded', () => {
             app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
             app.ctx.drawImage(app.persistentCanvas, 0, 0);
             app.strokes.pop();
-            app.svgPaths.pop();
             showNotification('Action undone.', 'success');
         }
     });
@@ -1076,7 +962,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     app.ctx.drawImage(app.persistentCanvas, 0, 0);
                     app.redoStack.push(app.actions.pop());
                     app.strokes.pop();
-                    app.svgPaths.pop();
                     frameIndex--;
                     setTimeout(undoFrame, 50);
                 }
