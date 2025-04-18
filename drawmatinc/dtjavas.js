@@ -216,7 +216,15 @@ function draw(e) {
     const pressure = e.pressure !== undefined ? e.pressure : 0.5;
     const adjustedBrushSize = app.brushSize * (0.2 + 0.8 * pressure);
     const adjustedCircleSize = app.circleSize * (0.2 + 0.8 * pressure);
-
+    // Add timestamp to strokes in draw function
+    app.strokes.push({
+        points: strokePoints,
+        brush: app.currentBrush,
+        size: adjustedBrushSize,
+        color,
+        opacity: app.opacity,
+        startTime: performance.now() // Add timestamp
+    });
     if (!app.isDrawingStarted) {
         app.isDrawingStarted = true;
         if (!app.recording) startMP4Recording();
