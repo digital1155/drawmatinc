@@ -1,4 +1,3 @@
-// Core Setup and Variables
 const DrawingApp = {
     canvas: null,
     ctx: null,
@@ -216,15 +215,7 @@ function draw(e) {
     const pressure = e.pressure !== undefined ? e.pressure : 0.5;
     const adjustedBrushSize = app.brushSize * (0.2 + 0.8 * pressure);
     const adjustedCircleSize = app.circleSize * (0.2 + 0.8 * pressure);
-    // Add timestamp to strokes in draw function
-    app.strokes.push({
-        points: strokePoints,
-        brush: app.currentBrush,
-        size: adjustedBrushSize,
-        color,
-        opacity: app.opacity,
-        startTime: performance.now() // Add timestamp
-    });
+
     if (!app.isDrawingStarted) {
         app.isDrawingStarted = true;
         if (!app.recording) startMP4Recording();
@@ -464,10 +455,11 @@ function startPosition(e) {
     app.redoStack = [];
 }
 
+// Updated Recording Logic
 function startMP4Recording() {
     const app = DrawingApp;
     if (app.recording) return;
-    if (app.actions.length === 0) {
+    if (app.strokes.length === 0) {
         showNotification('No drawing actions to record.', 'error');
         return;
     }
@@ -502,23 +494,96 @@ function startMP4Recording() {
     app.recording = true;
     document.getElementById('saveMP4').textContent = 'Stop Recording';
 
+    // Initialize recording canvas
     recordingCtx.clearRect(0, 0, recordingCanvas.width, recordingCanvas.height);
     drawBackground(recordingCtx);
 
-    let frameIndex = 0;
+    // Re-render strokes
+    let strokeIndex = 0;
     const frameDelay = 1000 / app.frameRate;
 
-    function replayFrame() {
-        if (frameIndex < app.actions.length && app.recording) {
-            recordingCtx.putImageData(app.actions[frameIndex].imageData, 0, 0);
-            frameIndex++;
-            setTimeout(replayFrame, frameDelay);
+    function replayStroke() {
+        if (strokeIndex < app.strokes.length && app.recording) {
+            const stroke = app.strokes[strokeIndex];
+            const points = stroke.points;
+            const brush = stroke.brush;
+            const size = stroke.size;
+            const color = stroke.color;
+            const opacity = stroke.opacity;
+
+            // Set rendering context properties
+            recordingCtx.globalCompositeOperation = 'lighter';
+            app.opacity = opacity; // Temporarily set opacity for brush rendering
+            app.currentBrush = brush;
+
+            // Process stroke points
+            for (let i = 0; i < points.length; i++) {
+                const point = points[i];
+                const prevPoint = i > 0 ? points[i - 1] : point;
+                const dx = point.x - prevPoint.x;
+                const dy = point.y - prevPoint.y;
+                const adjustedCircleSize = brush === 'continuousCircle' ? size : size; // Adjust for brush type
+                drawWithSymmetryForRecording(recordingCtx, point.x, point.y, dx, dy, size, adjustedCircleSize, color);
+            }
+
+            strokeIndex++;
+            setTimeout(replayStroke, frameDelay);
         } else if (app.recording) {
             app.mediaRecorder.stop();
         }
     }
 
-    replayFrame();
+    replayStroke();
+}
+
+// Helper function for recording
+function drawWithSymmetryForRecording(ctx, x, y, dx, dy, adjustedBrushSize, adjustedCircleSize, color) {
+    const app = DrawingApp;
+    const centerX = ctx.canvas.width / 2;
+    const centerY = ctx.canvas.height / 2;
+    const transformer = new SymmetryTransformer(app.symmetry);
+    const transformed = transformer.transform(x, y, dx, dy, centerX, centerY);
+    for (let t of transformed) {
+        if (app.spiralMode === 'on') {
+            const distanceFromCenter = Math.sqrt((t.x - centerX) ** 2 + (t.y - centerY) ** 2);
+            const baseAngle = Math.atan2(t.y - centerY, t.x - centerX);
+            const maxRadius = distanceFromCenter;
+            for (let j = 0; j <= app.spiralSteps; j++) {
+                const tSpiral = j / app.spiralSteps;
+                const theta = baseAngle + tSpiral * Math.PI * 2;
+                const r = maxRadius * tSpiral;
+                const spiralX = centerX + r * Math.cos(theta);
+                const spiralY = centerY + r * Math.sin(theta);
+                const spiralDx = t.dx * (1 - tSpiral);
+                const spiralDy = t.dy * (1 - tSpiral);
+                if (spiralX >= 0 && spiralX <= ctx.canvas.width && spiralY >= 0 && spiralY <= ctx.canvas.height) {
+                    applyMirrorTransformationsForRecording(ctx, spiralX, spiralY, spiralDx, spiralDy, adjustedBrushSize * (1 - tSpiral), adjustedCircleSize * (1 - tSpiral), color);
+                }
+            }
+        } else {
+            applyMirrorTransformationsForRecording(ctx, t.x, t.y, t.dx, t.dy, adjustedBrushSize, adjustedCircleSize, color);
+        }
+    }
+}
+
+function applyMirrorTransformationsForRecording(ctx, x, y, dx, dy, adjustedBrushSize, adjustedCircleSize, color) {
+    const app = DrawingApp;
+    drawBrushForRecording(ctx, x, y, dx, dy, adjustedBrushSize, adjustedCircleSize, color);
+    if (app.mirrorMode === 'horizontal') {
+        drawBrushForRecording(ctx, x, ctx.canvas.height - y, dx, -dy, adjustedBrushSize, adjustedCircleSize, color);
+    } else if (app.mirrorMode === 'vertical') {
+        drawBrushForRecording(ctx, ctx.canvas.width - x, y, -dx, dy, adjustedBrushSize, adjustedCircleSize, color);
+    }
+}
+
+function drawBrushForRecording(ctx, x, y, dx, dy, adjustedBrushSize, adjustedCircleSize, color) {
+    const app = DrawingApp;
+    switch (app.currentBrush) {
+        case 'web': drawSpiderWeb(ctx, x, y, adjustedBrushSize, color); break;
+        case 'continuousCircle': drawContinuousCircles(ctx, x, y, dx, dy, adjustedCircleSize, color); break;
+        case 'watercolor': drawWatercolor(ctx, x, y, dx, dy, adjustedBrushSize, color); break;
+        case 'curlyWings': drawCurlyWings(ctx, x, y, dx, dy, adjustedBrushSize, color); break;
+    }
 }
 
 // UI and Initialization
