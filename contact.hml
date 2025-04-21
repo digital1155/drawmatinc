@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Contact Drawmatinc - Send feedback, questions, or suggestions about the Brush Stroke Patterns Drawing Tool.">
+    <title>Drawmatinc - Contact</title>
+    <link rel="stylesheet" href="dthomepage.css"> <!-- Common CSS for your website -->
+    <style>
+        /* Contact Page-Specific Styles */
+        .contact-container {
+            max-width: 1200px;
+            margin: 6rem auto 2rem auto; /* Space for fixed header */
+            padding: 0 2rem;
+            color: #333;
+        }
+
+        .contact-container h1 {
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #2c3e50;
+        }
+
+        .section {
+            background: #f9f9f9;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .section h2 {
+            font-size: 1.8rem;
+            color: #3498db;
+            margin-bottom: 1rem;
+        }
+
+        .section p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        /* Form Styles */
+        .contact-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            font-size: 1.1rem;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            padding: 0.8rem;
+            font-size: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 150px;
+        }
+
+        .submit-btn {
+            background: #3498db;
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 4px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            align-self: center;
+        }
+
+        .submit-btn:hover {
+            background: #2980b9;
+        }
+
+        .form-note {
+            font-size: 0.9rem;
+            color: #666;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .contact-container h1 {
+                font-size: 2rem;
+            }
+
+            .section h2 {
+                font-size: 1.5rem;
+            }
+
+            .section p, .form-group label, .form-group input, .form-group textarea {
+                font-size: 1rem;
+            }
+
+            .submit-btn {
+                font-size: 1rem;
+                padding: 0.8rem 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="navcontainer">
+        <!-- Navigation -->
+        <header>
+            <nav>
+                <div class="logo">Drawmatinc</div>
+                <button class="menu-toggle" aria-label="Toggle navigation">
+                    <span class="hamburger"></span>
+                </button>
+                <ul class="nav-menu">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="drawmtinc-tool.html">Drawing Tool</a></li>
+                    <li><a href="tutorials.html">Tutorials</a></li>
+                    <li><a href="blog.html">Blog</a></li>
+                    <li><a href="gallery.html">Gallery</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                    <li><a href="privacy.html">Privacy Policy</a></li>
+                </ul>
+            </nav>
+        </header>
+    </div>
+
+    <div class="contact-container">
+        <h1>Contact Drawmatinc</h1>
+
+        <div class="section">
+            <h2>Get in Touch</h2>
+            <p>I’d love to hear from you! Whether you have feedback about the Brush Stroke Patterns Drawing Tool, a question, or a suggestion for new features, use the form below to reach out. As the solo developer behind Drawmatinc, I’ll do my best to respond promptly.</p>
+            <p>You can also email me directly at <a href="mailto:contact@drawmatinc.com">contact@drawmatinc.com</a> (replace with your actual email when ready).</p>
+        </div>
+
+        <div class="section">
+            <h2>Contact Form</h2>
+            <form class="contact-form" action="mailto:contact@drawmatinc.com" method="POST" enctype="text/plain">
+                <div class="form-group">
+                    <label for="name">Your Name</label>
+                    <input type="text" id="name" name="name" placeholder="Enter your name" required aria-required="true">
+                </div>
+                <div class="form-group">
+                    <label for="email">Your Email</label>
+                    <input type="email" id="email" name="email" placeholder="Enter your email" required aria-required="true">
+                </div>
+                <div class="form-group">
+                    <label for="subject">Subject</label>
+                    <input type="text" id="subject" name="subject" placeholder="What’s this about?" required aria-required="true">
+                </div>
+                <div class="form-group">
+                    <label for="message">Message</label>
+                    <textarea id="message" name="message" placeholder="Type your message here" required aria-required="true"></textarea>
+                </div>
+                <button type="submit" class="submit-btn">Send Message</button>
+            </form>
+            <p class="form-note">Note: This form opens your email client to send the message. I’ll reply as soon as possible!</p>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2025 Drawmatinc. All rights reserved. <a href="privacy.html">Privacy Policy</a></p>
+    </footer>
+
+    <script src="jdthomepage.js"></script> <!-- For navigation toggle -->
+</body>
+</html>
