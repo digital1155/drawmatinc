@@ -139,7 +139,13 @@
             color: #666;
             text-align: center;
         }
-
+        video {
+            max-width: 100%;
+            height: auto;
+            border: 2px solid #333;
+            border-radius: 8px;
+        }
+    
         @media (max-width: 768px) {
             .gallery-container h1 {
                 font-size: 2rem;
@@ -192,6 +198,8 @@
     </div>
 
     <div class="gallery-container">
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9339565698669813"
+     crossorigin="anonymous"></script>
         <h1>Drawmatinc Gallery</h1>
 
         <div class="section">
@@ -203,23 +211,31 @@
             <h2>Artwork Showcase</h2>
             <div class="gallery-grid">
                 <div class="gallery-item">
-                    <img src="path/to/artwork1.png" alt="Symmetry Spiral Artwork">
+                    <img src="gallery/art1.png" alt="Symmetry Spiral Artwork">
                     <div class="gallery-item-caption">Symmetry Spiral by Anonymous</div>
                 </div>
                 <div class="gallery-item">
-                    <img src="path/to/artwork2.png" alt="Watercolor Waves Artwork">
+                    <img src="gallery/art2.png" alt="Watercolor Waves Artwork">
                     <div class="gallery-item-caption">Watercolor Waves by Anonymous</div>
                 </div>
                 <div class="gallery-item">
-                    <img src="path/to/artwork3.png" alt="Curly Wings Mandala Artwork">
+                    <img src="gallery/art3.png" alt="Curly Wings Mandala Artwork">
                     <div class="gallery-item-caption">Curly Wings Mandala by Anonymous</div>
                 </div>
                 <div class="gallery-item">
-                    <img src="path/to/artwork4.png" alt="Wooly Web Artwork">
+                    <img src="gallery/art4.png" alt="Wooly Web Artwork">
                     <div class="gallery-item-caption">Wooly Web by Anonymous</div>
                 </div>
                 <!-- Add more items as needed -->
             </div>
+            <video controls>
+                <source src="gallery/video2.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            <video controls>
+                <source src="gallery/video1.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
         </div>
 
         <div class="section">
