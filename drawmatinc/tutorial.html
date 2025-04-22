@@ -69,6 +69,51 @@
             margin: 1rem auto;
             display: block;
         }
+        .sidebar {
+            flex: 3; /* 30% width */
+            background: #e9ecef;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar h3 {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            margin-bottom: 1rem;
+        }
+
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .sidebar ul li {
+            margin-bottom: 1rem;
+        }
+
+        .sidebar ul li a {
+            text-decoration: none;
+            color: #3498db;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: color 0.3s ease;
+        }
+
+        .sidebar ul li a:hover {
+            color: #2980b9;
+            text-decoration: underline;
+        }
+
+        .sidebar ul li img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
 
         @media (max-width: 768px) {
             .tutorial-container h1 {
@@ -81,6 +126,18 @@
 
             .section p, .step-list li {
                 font-size: 1rem;
+            }
+            .sidebar h3 {
+                font-size: 1.3rem;
+            }
+
+            .sidebar ul li a {
+                font-size: 0.9rem;
+            }
+
+            .sidebar ul li img {
+                width: 40px;
+                height: 40px;
             }
         }
     </style>
@@ -217,6 +274,29 @@
         <div class="section">
             <h2>Conclusion</h2>
             <p>You’re now ready to create amazing art with the Drawmatinc Drawing Tool! Experiment with brushes, colors, and effects to find your style. Share your creations in our <a href="gallery.html">Gallery</a> or contact us via the <a href="contact.html">Contact</a> page with questions. Happy drawing!</p>
+        </div>
+        <div class="sidebar">
+            <h3>Recent Posts</h3>
+            <ul>
+                <li>
+                    <a href="tutorial2.html">
+                        <img src="blogs/digitalartingaming1.jpg" alt="Digital Art in Gaming">
+                        How to Earn Money Using the Drawmatinc Drawing Tool
+                    </a>
+                </li>
+                <li>
+                    <a href="blog2.html">
+                        <img src="blogp/blog2p1.jpg" alt="Eco-Conscious Digital Art">
+                        Eco-Conscious Digital Art: Sustainability in a Digital Age
+                    </a>
+                </li>
+                <li>
+                    <a href="blog3.html">
+                        <img src="blogp/blog3p1.jpg" alt="The Rise of AI-Generated Art">
+                        The Rise of AI-Generated Art: Revolution or Controversy??
+                    </a>
+                </li>
+            </ul>
         </div>
     </div>
 
