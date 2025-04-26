@@ -1,3 +1,4 @@
+
 const DrawingApp = {
     canvas: null,
     ctx: null,
@@ -48,7 +49,7 @@ const DrawingApp = {
     recording: false,
     mediaRecorder: null,
     recordedChunks: [],
-    frameRate: 30,
+    frameRate: 15, // Reduced for 10x speed
     ASPECT_RATIO: 16 / 9,
     lastDrawTime: 0,
     defaultColors: ['#1df58d', '#0000FF', '#FF0000', '#FFFF00', '#00FF00', '#FF00FF', '#00FFFF', '#800080', '#FFA500', '#808080']
@@ -76,21 +77,46 @@ function getTouchDistance(touches) {
 function getInternalResolution() {
     const resolutionSelect = document.getElementById('canvasResolution');
     const selectedValue = resolutionSelect ? resolutionSelect.value : 'fullhd';
+    const aspectSelect = document.getElementById('aspectRatio');
+    const aspectValue = aspectSelect ? aspectSelect.value : '16:9';
+    
+    let aspectRatio;
+    switch (aspectValue) {
+        case '4:3': aspectRatio = 4/3; break;
+        case '3:4': aspectRatio = 3/4; break;
+        case '16:9': aspectRatio = 16/9; break;
+        case '9:16': aspectRatio = 9/16; break;
+        default: aspectRatio = 16/9;
+    }
+    DrawingApp.ASPECT_RATIO = aspectRatio;
+
     switch (selectedValue) {
-        case 'hd': return { width: 1280, height: 720 };
-        case 'fullhd': return { width: 1920, height: 1080 };
-        case '4k': return { width: 3840, height: 2160 };
-        default: return { width: 1920, height: 1080 };
+        case 'hd': return { width: 1280, height: Math.round(1280 / aspectRatio) };
+        case 'fullhd': return { width: 1920, height: Math.round(1920 / aspectRatio) };
+        case '4k': return { width: 3840, height: Math.round(3840 / aspectRatio) };
+        default: return { width: 1920, height: Math.round(1920 / aspectRatio) };
     }
 }
 
 function getVideoResolution() {
     const select = document.getElementById('videoResolution');
     const value = select ? select.value : '1080p';
+    const aspectSelect = document.getElementById('aspectRatio');
+    const aspectValue = aspectSelect ? aspectSelect.value : '16:9';
+    
+    let aspectRatio;
+    switch (aspectValue) {
+        case '4:3': aspectRatio = 4/3; break;
+        case '3:4': aspectRatio = 3/4; break;
+        case '16:9': aspectRatio = 16/9; break;
+        case '9:16': aspectRatio = 9/16; break;
+        default: aspectRatio = 16/9;
+    }
+
     switch (value) {
-        case '720p': return { width: 1280, height: 720 };
-        case '1080p': return { width: 1920, height: 1080 };
-        default: return { width: 1920, height: 1080 };
+        case '720p': return { width: 1280, height: Math.round(1280 / aspectRatio) };
+        case '1080p': return { width: 1920, height: Math.round(1920 / aspectRatio) };
+        default: return { width: 1920, height: Math.round(1920 / aspectRatio) };
     }
 }
 
@@ -155,7 +181,14 @@ function resizeCanvas() {
     }
 
     drawBackground(app.persistentCtx);
-    if (tempImageData) app.persistentCtx.putImageData(tempImageData, 0, 0);
+    if (tempImageData) {
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = tempImageData.width;
+        tempCanvas.height = tempImageData.height;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.putImageData(tempImageData, 0, 0);
+        app.persistentCtx.drawImage(tempCanvas, 0, 0, resolution.width, resolution.height);
+    }
     app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
     app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
     app.ctx.drawImage(app.persistentCanvas, 0, 0);
@@ -163,6 +196,7 @@ function resizeCanvas() {
 
 function drawBackground(context) {
     const app = DrawingApp;
+    context.globalCompositeOperation = 'source-over';
     if (app.transparentBg) {
         context.clearRect(0, 0, app.canvas.width, app.canvas.height);
     } else if (app.bgImage) {
@@ -218,7 +252,6 @@ function draw(e) {
 
     if (!app.isDrawingStarted) {
         app.isDrawingStarted = true;
-        if (!app.recording) startMP4Recording();
     }
 
     if (app.lastX !== undefined && app.lastY !== undefined) {
@@ -226,13 +259,13 @@ function draw(e) {
         const dy = currentY - app.lastY;
         const distance = Math.sqrt(dx * dx + dy * dy);
         app.offscreenCtx.clearRect(0, 0, app.offscreenCanvas.width, app.offscreenCanvas.height);
-        app.offscreenCtx.globalCompositeOperation = 'lighter';
+        app.offscreenCtx.globalCompositeOperation = 'source-over';
         const strokePoints = [];
         for (let i = 0; i <= distance; i += app.smoothness) {
             const point = i / distance;
             const x = app.lastX + dx * point;
             const y = app.lastY + dy * point;
-            strokePoints.push({ x, y, time: currentTime });
+            strokePoints.push({ x, y, time: currentTime, pressure });
             drawWithSymmetry(x, y, dx, dy, adjustedBrushSize, adjustedCircleSize);
         }
         app.persistentCtx.drawImage(app.offscreenCanvas, 0, 0);
@@ -240,8 +273,55 @@ function draw(e) {
         app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
         app.ctx.drawImage(app.persistentCanvas, 0, 0);
         const color = getColor(currentX, currentY);
-        app.strokes.push({ points: strokePoints, brush: app.currentBrush, size: adjustedBrushSize, color, opacity: app.opacity });
-        app.actions.push({ imageData: app.persistentCtx.getImageData(0, 0, app.canvas.width, app.canvas.height), strokes: strokePoints, brush: app.currentBrush, size: adjustedBrushSize, color, opacity: app.opacity });
+        app.strokes.push({
+            points: strokePoints,
+            brush: app.currentBrush,
+            size: adjustedBrushSize,
+            color,
+            opacity: app.opacity,
+            pressure,
+            settings: {
+                webDensity: app.webDensity,
+                webSpread: app.webSpread,
+                webWiggle: app.webWiggle,
+                circleSize: adjustedCircleSize,
+                borderWidth: app.borderWidth,
+                watercolorSpread: app.watercolorSpread,
+                watercolorBleed: app.watercolorBleed,
+                wingSize: app.wingSize,
+                curlIntensity: app.curlIntensity,
+                wingOpacity: app.wingOpacity,
+                symmetry: app.symmetry,
+                mirrorMode: app.mirrorMode,
+                spiralMode: app.spiralMode,
+                spiralSteps: app.spiralSteps
+            }
+        });
+        app.actions.push({
+            imageData: app.persistentCtx.getImageData(0, 0, app.canvas.width, app.canvas.height),
+            strokes: strokePoints,
+            brush: app.currentBrush,
+            size: adjustedBrushSize,
+            color,
+            opacity: app.opacity,
+            pressure,
+            settings: {
+                webDensity: app.webDensity,
+                webSpread: app.webSpread,
+                webWiggle: app.webWiggle,
+                circleSize: adjustedCircleSize,
+                borderWidth: app.borderWidth,
+                watercolorSpread: app.watercolorSpread,
+                watercolorBleed: app.watercolorBleed,
+                wingSize: app.wingSize,
+                curlIntensity: app.curlIntensity,
+                wingOpacity: app.wingOpacity,
+                symmetry: app.symmetry,
+                mirrorMode: app.mirrorMode,
+                spiralMode: app.spiralMode,
+                spiralSteps: app.spiralSteps
+            }
+        });
         app.redoStack = [];
     }
     app.lastX = currentX;
@@ -322,7 +402,7 @@ function getColor(x, y) {
         const pixelData = app.colorImageCtx.getImageData(imgX, imgY, 1, 1).data;
         return `#${((1 << 24) + (pixelData[0] << 16) + (pixelData[1] << 8) + pixelData[2]).toString(16).slice(1)}`;
     }
-    return app.colors[0];
+    return app.colors[Math.floor(Math.random() * app.colors.length)];
 }
 
 function drawSpiderWeb(ctx, x, y, size, color) {
@@ -444,23 +524,73 @@ function startPosition(e) {
     if (!app.isDrawingStarted) app.isDrawingStarted = true;
     app.offscreenCtx.clearRect(0, 0, app.offscreenCanvas.width, app.offscreenCanvas.height);
     app.ctx.globalCompositeOperation = 'source-over';
-    drawWithSymmetry(app.lastX, app.lastY, 0, 0, app.brushSize, app.circleSize);
+    const pressure = e.pressure !== undefined ? e.pressure : 0.5;
+    drawWithSymmetry(app.lastX, app.lastY, 0, 0, app.brushSize * (0.2 + 0.8 * pressure), app.circleSize * (0.2 + 0.8 * pressure));
     app.persistentCtx.drawImage(app.offscreenCanvas, 0, 0);
     app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
     app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
     app.ctx.drawImage(app.persistentCanvas, 0, 0);
     const color = getColor(app.lastX, app.lastY);
-    app.strokes.push({ points: [{ x: app.lastX, y: app.lastY, time: performance.now() }], brush: app.currentBrush, size: app.brushSize, color, opacity: app.opacity });
-    app.actions.push({ imageData: app.persistentCtx.getImageData(0, 0, app.canvas.width, app.canvas.height), strokes: [{ x: app.lastX, y: app.lastY }], brush: app.currentBrush, size: app.brushSize, color, opacity: app.opacity });
+    app.strokes.push({
+        points: [{ x: app.lastX, y: app.lastY, time: performance.now(), pressure }],
+        brush: app.currentBrush,
+        size: app.brushSize * (0.2 + 0.8 * pressure),
+        color,
+        opacity: app.opacity,
+        settings: {
+            webDensity: app.webDensity,
+            webSpread: app.webSpread,
+            webWiggle: app.webWiggle,
+            circleSize: app.circleSize * (0.2 + 0.8 * pressure),
+            borderWidth: app.borderWidth,
+            watercolorSpread: app.watercolorSpread,
+            watercolorBleed: app.watercolorBleed,
+            wingSize: app.wingSize,
+            curlIntensity: app.curlIntensity,
+            wingOpacity: app.wingOpacity,
+            symmetry: app.symmetry,
+            mirrorMode: app.mirrorMode,
+            spiralMode: app.spiralMode,
+            spiralSteps: app.spiralSteps
+        }
+    });
+    app.actions.push({
+        imageData: app.persistentCtx.getImageData(0, 0, app.canvas.width, app.canvas.height),
+        strokes: [{ x: app.lastX, y: app.lastY }],
+        brush: app.currentBrush,
+        size: app.brushSize * (0.2 + 0.8 * pressure),
+        color,
+        opacity: app.opacity,
+        pressure,
+        settings: {
+            webDensity: app.webDensity,
+            webSpread: app.webSpread,
+            webWiggle: app.webWiggle,
+            circleSize: app.circleSize * (0.2 + 0.8 * pressure),
+            borderWidth: app.borderWidth,
+            watercolorSpread: app.watercolorSpread,
+            watercolorBleed: app.watercolorBleed,
+            wingSize: app.wingSize,
+            curlIntensity: app.curlIntensity,
+            wingOpacity: app.wingOpacity,
+            symmetry: app.symmetry,
+            mirrorMode: app.mirrorMode,
+            spiralMode: app.spiralMode,
+            spiralSteps: app.spiralSteps
+        }
+    });
     app.redoStack = [];
 }
 
-// Updated Recording Logic
 function startMP4Recording() {
     const app = DrawingApp;
-    if (app.recording) return;
-    if (app.strokes.length === 0) {
+    if (app.recording) {
+        console.warn('Recording already in progress');
+        return;
+    }
+    if (app.actions.length <= 1) {
         showNotification('No drawing actions to record.', 'error');
+        console.error('No actions available for recording');
         return;
     }
 
@@ -468,135 +598,131 @@ function startMP4Recording() {
     const recordingCanvas = document.createElement('canvas');
     recordingCanvas.width = videoRes.width;
     recordingCanvas.height = videoRes.height;
-    const recordingCtx = recordingCanvas.getContext('2d');
+    const recordingCtx = recordingCanvas.getContext('2d', { willReadFrequently: true });
 
     app.recordedChunks = [];
-    const stream = recordingCanvas.captureStream(app.frameRate);
+    let stream;
+    try {
+        stream = recordingCanvas.captureStream(app.frameRate);
+    } catch (err) {
+        showNotification('Failed to start recording: Stream capture error.', 'error');
+        console.error('Stream capture error:', err);
+        return;
+    }
+
     const mimeType = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm';
-    app.mediaRecorder = new MediaRecorder(stream, { mimeType });
-    app.mediaRecorder.ondataavailable = (e) => app.recordedChunks.push(e.data);
+    try {
+        app.mediaRecorder = new MediaRecorder(stream, { mimeType });
+    } catch (err) {
+        showNotification('Failed to start recording: MediaRecorder error.', 'error');
+        console.error('MediaRecorder error:', err);
+        return;
+    }
+
+    app.mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) app.recordedChunks.push(e.data);
+    };
     app.mediaRecorder.onstop = () => {
-        const extension = mimeType === 'video/mp4' ? 'mp4' : 'webm';
-        const blob = new Blob(app.recordedChunks, { type: mimeType });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `drawing_process_${videoRes.width}x${videoRes.height}.${extension}`;
-        link.click();
-        URL.revokeObjectURL(url);
-        showNotification(`Saved as ${extension} at ${videoRes.width}x${videoRes.height}`, 'success');
+        try {
+            const extension = mimeType === 'video/mp4' ? 'mp4' : 'webm';
+            const blob = new Blob(app.recordedChunks, { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `drawing_process_${videoRes.width}x${videoRes.height}.${extension}`;
+            link.click();
+            URL.revokeObjectURL(url);
+            showNotification(`Saved as ${extension} at ${videoRes.width}x${videoRes.height}`, 'success');
+        } catch (err) {
+            showNotification('Error saving video.', 'error');
+            console.error('Error saving video:', err);
+        }
         app.recording = false;
         document.getElementById('saveMP4').textContent = 'Save MP4';
         resizeCanvas();
     };
+    app.mediaRecorder.onerror = (err) => {
+        showNotification('Recording error occurred.', 'error');
+        console.error('MediaRecorder error:', err);
+    };
 
-    app.mediaRecorder.start();
-    app.recording = true;
-    document.getElementById('saveMP4').textContent = 'Stop Recording';
+    try {
+        app.mediaRecorder.start();
+        app.recording = true;
+        document.getElementById('saveMP4').textContent = 'Stop Recording';
+    } catch (err) {
+        showNotification('Failed to start recording.', 'error');
+        console.error('Start recording error:', err);
+        return;
+    }
 
-    // Initialize recording canvas
-    recordingCtx.clearRect(0, 0, recordingCanvas.width, recordingCanvas.height);
-    drawBackground(recordingCtx);
+    // Snapshot-based recording
+    let frameIndex = 0;
+    const framesPerStroke = 1; // Minimal frames for 10x speed
+    const totalFrames = (app.actions.length - 1) * framesPerStroke;
 
-    // Re-render strokes
-    let strokeIndex = 0;
-    const frameDelay = 1000 / app.frameRate;
+    function renderFrame() {
+        if (frameIndex < totalFrames && app.recording) {
+            console.time('renderFrame');
+            recordingCtx.clearRect(0, 0, recordingCanvas.width, recordingCanvas.height);
 
-    function replayStroke() {
-        if (strokeIndex < app.strokes.length && app.recording) {
-            const stroke = app.strokes[strokeIndex];
-            const points = stroke.points;
-            const brush = stroke.brush;
-            const size = stroke.size;
-            const color = stroke.color;
-            const opacity = stroke.opacity;
+            // Calculate snapshot index
+            const actionIndex = Math.min(Math.floor(frameIndex / framesPerStroke) + 1, app.actions.length - 1);
+            const action = app.actions[actionIndex];
 
-            // Set rendering context properties
-            recordingCtx.globalCompositeOperation = 'lighter';
-            app.opacity = opacity; // Temporarily set opacity for brush rendering
-            app.currentBrush = brush;
-
-            // Process stroke points
-            for (let i = 0; i < points.length; i++) {
-                const point = points[i];
-                const prevPoint = i > 0 ? points[i - 1] : point;
-                const dx = point.x - prevPoint.x;
-                const dy = point.y - prevPoint.y;
-                const adjustedCircleSize = brush === 'continuousCircle' ? size : size; // Adjust for brush type
-                drawWithSymmetryForRecording(recordingCtx, point.x, point.y, dx, dy, size, adjustedCircleSize, color);
+            // Draw snapshot
+            try {
+                if (action.imageData.width !== recordingCanvas.width || action.imageData.height !== recordingCanvas.height) {
+                    // Resize snapshot if resolution differs
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = action.imageData.width;
+                    tempCanvas.height = action.imageData.height;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    tempCtx.putImageData(action.imageData, 0, 0);
+                    recordingCtx.drawImage(tempCanvas, 0, 0, recordingCanvas.width, recordingCanvas.height);
+                } else {
+                    recordingCtx.putImageData(action.imageData, 0, 0);
+                }
+            } catch (err) {
+                console.error('Error rendering snapshot:', err);
+                showNotification('Error rendering frame.', 'error');
+                app.mediaRecorder.stop();
+                return;
             }
 
-            strokeIndex++;
-            setTimeout(replayStroke, frameDelay);
+            frameIndex++;
+            console.timeEnd('renderFrame');
+            requestAnimationFrame(renderFrame);
         } else if (app.recording) {
             app.mediaRecorder.stop();
         }
     }
 
-    replayStroke();
+    renderFrame();
 }
 
-// Helper function for recording
-function drawWithSymmetryForRecording(ctx, x, y, dx, dy, adjustedBrushSize, adjustedCircleSize, color) {
-    const app = DrawingApp;
-    const centerX = ctx.canvas.width / 2;
-    const centerY = ctx.canvas.height / 2;
-    const transformer = new SymmetryTransformer(app.symmetry);
-    const transformed = transformer.transform(x, y, dx, dy, centerX, centerY);
-    for (let t of transformed) {
-        if (app.spiralMode === 'on') {
-            const distanceFromCenter = Math.sqrt((t.x - centerX) ** 2 + (t.y - centerY) ** 2);
-            const baseAngle = Math.atan2(t.y - centerY, t.x - centerX);
-            const maxRadius = distanceFromCenter;
-            for (let j = 0; j <= app.spiralSteps; j++) {
-                const tSpiral = j / app.spiralSteps;
-                const theta = baseAngle + tSpiral * Math.PI * 2;
-                const r = maxRadius * tSpiral;
-                const spiralX = centerX + r * Math.cos(theta);
-                const spiralY = centerY + r * Math.sin(theta);
-                const spiralDx = t.dx * (1 - tSpiral);
-                const spiralDy = t.dy * (1 - tSpiral);
-                if (spiralX >= 0 && spiralX <= ctx.canvas.width && spiralY >= 0 && spiralY <= ctx.canvas.height) {
-                    applyMirrorTransformationsForRecording(ctx, spiralX, spiralY, spiralDx, spiralDy, adjustedBrushSize * (1 - tSpiral), adjustedCircleSize * (1 - tSpiral), color);
-                }
-            }
-        } else {
-            applyMirrorTransformationsForRecording(ctx, t.x, t.y, t.dx, t.dy, adjustedBrushSize, adjustedCircleSize, color);
-        }
-    }
-}
-
-function applyMirrorTransformationsForRecording(ctx, x, y, dx, dy, adjustedBrushSize, adjustedCircleSize, color) {
-    const app = DrawingApp;
-    drawBrushForRecording(ctx, x, y, dx, dy, adjustedBrushSize, adjustedCircleSize, color);
-    if (app.mirrorMode === 'horizontal') {
-        drawBrushForRecording(ctx, x, ctx.canvas.height - y, dx, -dy, adjustedBrushSize, adjustedCircleSize, color);
-    } else if (app.mirrorMode === 'vertical') {
-        drawBrushForRecording(ctx, ctx.canvas.width - x, y, -dx, dy, adjustedBrushSize, adjustedCircleSize, color);
-    }
-}
-
-function drawBrushForRecording(ctx, x, y, dx, dy, adjustedBrushSize, adjustedCircleSize, color) {
-    const app = DrawingApp;
-    switch (app.currentBrush) {
-        case 'web': drawSpiderWeb(ctx, x, y, adjustedBrushSize, color); break;
-        case 'continuousCircle': drawContinuousCircles(ctx, x, y, dx, dy, adjustedCircleSize, color); break;
-        case 'watercolor': drawWatercolor(ctx, x, y, dx, dy, adjustedBrushSize, color); break;
-        case 'curlyWings': drawCurlyWings(ctx, x, y, dx, dy, adjustedBrushSize, color); break;
-    }
+// Random Color Generator
+function generateRandomColor() {
+    return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
 }
 
 // UI and Initialization
 document.addEventListener('DOMContentLoaded', () => {
     const app = DrawingApp;
-    app.canvas = document.getElementById('canvas');
-    app.ctx = app.canvas.getContext('2d');
-    app.persistentCanvas = document.createElement('canvas');
-    app.persistentCtx = app.persistentCanvas.getContext('2d');
-    app.offscreenCanvas = document.createElement('canvas');
-    app.offscreenCtx = app.offscreenCanvas.getContext('2d');
+    try {
+        app.canvas = document.getElementById('canvas');
+        if (!app.canvas) throw new Error('Canvas element not found');
+        app.ctx = app.canvas.getContext('2d', { willReadFrequently: true });
+        app.persistentCanvas = document.createElement('canvas');
+        app.persistentCtx = app.persistentCanvas.getContext('2d', { willReadFrequently: true });
+        app.offscreenCanvas = document.createElement('canvas');
+        app.offscreenCtx = app.offscreenCanvas.getContext('2d', { willReadFrequently: true });
+    } catch (err) {
+        showNotification('Failed to initialize canvas.', 'error');
+        console.error('Canvas initialization error:', err);
+        return;
+    }
 
-    // Hide GIF and SVG buttons if they exist
     const saveGIFButton = document.getElementById('saveGIF');
     const saveSVGButton = document.getElementById('saveSVG');
     if (saveGIFButton) saveGIFButton.style.display = 'none';
@@ -614,10 +740,16 @@ document.addEventListener('DOMContentLoaded', () => {
         "Art is the journey of a free soul...:Alev Oguz",
         "Every canvas is a journey all its own...:Helen Frankenthaler"
     ];
-    document.getElementById('quote-text').textContent = quotes[Math.floor(Math.random() * quotes.length)];
-    document.getElementById('close-welcome').addEventListener('click', () => {
-        document.getElementById('welcome-screen').classList.add('hidden');
-    });
+    const quoteText = document.getElementById('quote-text');
+    if (quoteText) quoteText.textContent = quotes[Math.floor(Math.random() * quotes.length)];
+
+    const closeWelcome = document.getElementById('close-welcome');
+    if (closeWelcome) {
+        closeWelcome.addEventListener('click', () => {
+            const welcomeScreen = document.getElementById('welcome-screen');
+            if (welcomeScreen) welcomeScreen.classList.add('hidden');
+        });
+    }
 
     window.addEventListener('load', () => {
         showNotification('Welcome to the Brush Stroke Patterns Drawing Tool!', 'success');
@@ -628,9 +760,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const portraitMedia = window.matchMedia("(orientation: portrait) and (max-width: 768px)");
         const overlay = document.getElementById('orientation-overlay');
         if (isMobile && portraitMedia.matches) {
-            overlay.style.display = 'flex';
+            if (overlay) overlay.style.display = 'flex';
         } else {
-            overlay.style.display = 'none';
+            if (overlay) overlay.style.display = 'none';
             resizeCanvas();
         }
     }
@@ -638,10 +770,14 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', resizeCanvas);
     window.addEventListener('orientationchange', handleOrientationChange);
     window.matchMedia("(orientation: portrait)").addEventListener('change', handleOrientationChange);
-    document.getElementById('dismiss-overlay').addEventListener('click', () => {
-        document.getElementById('orientation-overlay').style.display = 'none';
-        resizeCanvas();
-    });
+    const dismissOverlay = document.getElementById('dismiss-overlay');
+    if (dismissOverlay) {
+        dismissOverlay.addEventListener('click', () => {
+            const overlay = document.getElementById('orientation-overlay');
+            if (overlay) overlay.style.display = 'none';
+            resizeCanvas();
+        });
+    }
 
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', () => {
@@ -652,7 +788,8 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             tab.classList.add('active');
             tab.setAttribute('aria-selected', 'true');
-            document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
+            const tabContent = document.getElementById(`${tab.dataset.tab}-tab`);
+            if (tabContent) tabContent.classList.add('active');
             resizeCanvas();
         });
         tab.addEventListener('keydown', (e) => {
@@ -663,7 +800,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    const updateSliderValue = (id, value) => document.getElementById(id).textContent = value;
+    const updateSliderValue = (id, value) => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = value;
+    };
     const updateValue = (id, func) => {
         const input = document.getElementById(id);
         if (input) {
@@ -705,11 +845,15 @@ document.addEventListener('DOMContentLoaded', () => {
     updateValue('bgColor2', v => app.bgColor2 = v);
     updateValue('colorSamplingMethod', v => app.colorSamplingMethod = v);
     updateValue('spiralSteps', v => app.spiralSteps = parseInt(v));
+    updateValue('aspectRatio', () => resizeCanvas());
 
     function updateColorInputs() {
         const colorInputs = document.getElementById('colorInputs');
+        if (!colorInputs) return;
         colorInputs.innerHTML = '';
         for (let i = 0; i < app.colorCount; i++) {
+            const container = document.createElement('div');
+            container.className = 'color-picker-container';
             const label = document.createElement('label');
             label.textContent = `Color ${i + 1}:`;
             label.setAttribute('data-tooltip', `Pick color ${i + 1}`);
@@ -718,8 +862,9 @@ document.addEventListener('DOMContentLoaded', () => {
             input.id = `colorPicker${i + 1}`;
             input.value = app.colors[i] || app.defaultColors[i % app.defaultColors.length];
             input.setAttribute('aria-label', `Color ${i + 1}`);
-            colorInputs.appendChild(label);
-            colorInputs.appendChild(input);
+            container.appendChild(label);
+            container.appendChild(input);
+            colorInputs.appendChild(container);
 
             input.addEventListener('input', (e) => {
                 app.colors[i] = e.target.value;
@@ -737,15 +882,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateColorInputs();
 
-    document.getElementById('colorCount').addEventListener('change', (e) => {
-        app.colorCount = parseInt(e.target.value);
-        const prevColors = app.colors.slice();
-        app.colors = [];
-        for (let i = 0; i < app.colorCount; i++) {
-            app.colors[i] = prevColors[i] || app.defaultColors[i % app.defaultColors.length];
-        }
-        updateColorInputs();
-    });
+    const colorCountInput = document.getElementById('colorCount');
+    if (colorCountInput) {
+        colorCountInput.addEventListener('change', (e) => {
+            app.colorCount = parseInt(e.target.value);
+            const prevColors = app.colors.slice();
+            app.colors = [];
+            for (let i = 0; i < app.colorCount; i++) {
+                app.colors[i] = prevColors[i] || app.defaultColors[i % app.defaultColors.length];
+            }
+            updateColorInputs();
+        });
+    }
+
+    const randomizeAllButton = document.getElementById('randomizeAllColors');
+    if (randomizeAllButton) {
+        randomizeAllButton.addEventListener('click', () => {
+            app.colors = Array.from({ length: app.colorCount }, () => generateRandomColor());
+            updateColorInputs();
+            showNotification('All colors randomized!', 'success');
+        });
+    }
 
     document.querySelectorAll('.symmetry-option').forEach(option => {
         option.addEventListener('click', function() {
@@ -782,7 +939,8 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.spiral-option').forEach(o => o.classList.remove('active'));
             this.classList.add('active');
             app.spiralMode = this.getAttribute('data-spiral');
-            document.getElementById('spiralSettings').style.display = app.spiralMode === 'on' ? 'flex' : 'none';
+            const spiralSettings = document.getElementById('spiralSettings');
+            if (spiralSettings) spiralSettings.style.display = app.spiralMode === 'on' ? 'flex' : 'none';
         });
         option.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -794,106 +952,130 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setupBrushOptions() {
         const brushSelect = document.getElementById('brushSelect');
-        brushSelect.addEventListener('change', function() {
-            app.currentBrush = this.value;
-            ['webSettings', 'continuousCircleSettings', 'watercolorSettings', 'curlyWingsSettings'].forEach(id => {
-                document.getElementById(id).style.display = app.currentBrush === id.split('Settings')[0] ? 'flex' : 'none';
+        if (brushSelect) {
+            brushSelect.addEventListener('change', function() {
+                app.currentBrush = this.value;
+                ['webSettings', 'continuousCircleSettings', 'watercolorSettings', 'curlyWingsSettings'].forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) element.style.display = app.currentBrush === id.split('Settings')[0] ? 'flex' : 'none';
+                });
+                if (app.currentBrush === 'continuousCircle') {
+                    const continuousCircleSettings = document.getElementById('continuousCircleSettings');
+                    if (continuousCircleSettings) continuousCircleSettings.style.display = 'flex';
+                }
             });
-            if (app.currentBrush === 'continuousCircle') {
-                document.getElementById('continuousCircleSettings').style.display = 'flex';
-            }
-        });
-        brushSelect.dispatchEvent(new Event('change'));
+            brushSelect.dispatchEvent(new Event('change'));
+        }
     }
     setupBrushOptions();
 
-    document.getElementById('canvasResolution').addEventListener('change', resizeCanvas);
+    const canvasResolution = document.getElementById('canvasResolution');
+    if (canvasResolution) canvasResolution.addEventListener('change', resizeCanvas);
 
-    document.getElementById('bgImageUpload').addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            if (!file.type.startsWith('image/')) {
-                showNotification('Please upload an image file.', 'error');
-                e.target.value = '';
-                return;
+    const bgImageUpload = document.getElementById('bgImageUpload');
+    if (bgImageUpload) {
+        bgImageUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                if (!file.type.startsWith('image/')) {
+                    showNotification('Please upload an image file.', 'error');
+                    e.target.value = '';
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    app.bgImage = new Image();
+                    app.bgImage.onload = () => {
+                        drawBackground(app.persistentCtx);
+                        app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
+                        app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
+                        app.ctx.drawImage(app.persistentCanvas, 0, 0);
+                        showNotification('Background image uploaded!', 'success');
+                    };
+                    app.bgImage.onerror = () => {
+                        showNotification('Failed to load image.', 'error');
+                        app.bgImage = null;
+                    };
+                    app.bgImage.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
             }
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                app.bgImage = new Image();
-                app.bgImage.onload = () => {
-                    drawBackground(app.persistentCtx);
-                    app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
-                    app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
-                    app.ctx.drawImage(app.persistentCanvas, 0, 0);
-                    showNotification('Background image uploaded!', 'success');
+        });
+    }
+
+    const gradientBg = document.getElementById('gradientBg');
+    if (gradientBg) {
+        gradientBg.addEventListener('change', (e) => {
+            app.gradientBg = e.target.checked;
+            drawBackground(app.persistentCtx);
+            app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
+            app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
+            app.ctx.drawImage(app.persistentCanvas, 0, 0);
+        });
+    }
+
+    const transparentBg = document.getElementById('transparentBg');
+    if (transparentBg) {
+        transparentBg.addEventListener('change', (e) => {
+            app.transparentBg = e.target.checked;
+            drawBackground(app.persistentCtx);
+            app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
+            app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
+            app.ctx.drawImage(app.persistentCanvas, 0, 0);
+        });
+    }
+
+    const colorImageUpload = document.getElementById('colorImageUpload');
+    if (colorImageUpload) {
+        colorImageUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                if (!file.type.startsWith('image/')) {
+                    showNotification('Please upload an image file.', 'error');
+                    e.target.value = '';
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    app.colorImage = new Image();
+                    app.colorImage.onload = () => {
+                        app.colorImageCanvas = document.createElement('canvas');
+                        app.colorImageCanvas.width = app.colorImage.width;
+                        app.colorImageCanvas.height = app.colorImage.height;
+                        app.colorImageCtx = app.colorImageCanvas.getContext('2d');
+                        app.colorImageCtx.drawImage(app.colorImage, 0, 0);
+                        showNotification('Color sampling image uploaded!', 'success');
+                    };
+                    app.colorImage.onerror = () => {
+                        showNotification('Failed to load image.', 'error');
+                        app.colorImage = null;
+                    };
+                    app.colorImage.src = event.target.result;
                 };
-                app.bgImage.onerror = () => {
-                    showNotification('Failed to load image.', 'error');
-                    app.bgImage = null;
-                };
-                app.bgImage.src = event.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-
-    document.getElementById('gradientBg').addEventListener('change', (e) => {
-        app.gradientBg = e.target.checked;
-        drawBackground(app.persistentCtx);
-        app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
-        app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
-        app.ctx.drawImage(app.persistentCanvas, 0, 0);
-    });
-
-    document.getElementById('transparentBg').addEventListener('change', (e) => {
-        app.transparentBg = e.target.checked;
-        drawBackground(app.persistentCtx);
-        app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
-        app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
-        app.ctx.drawImage(app.persistentCanvas, 0, 0);
-    });
-
-    document.getElementById('colorImageUpload').addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            if (!file.type.startsWith('image/')) {
-                showNotification('Please upload an image file.', 'error');
-                e.target.value = '';
-                return;
+                reader.readAsDataURL(file);
             }
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                app.colorImage = new Image();
-                app.colorImage.onload = () => {
-                    app.colorImageCanvas = document.createElement('canvas');
-                    app.colorImageCanvas.width = app.colorImage.width;
-                    app.colorImageCanvas.height = app.colorImage.height;
-                    app.colorImageCtx = app.colorImageCanvas.getContext('2d');
-                    app.colorImageCtx.drawImage(app.colorImage, 0, 0);
-                    showNotification('Color sampling image uploaded!', 'success');
-                };
-                app.colorImage.onerror = () => {
-                    showNotification('Failed to load image.', 'error');
-                    app.colorImage = null;
-                };
-                app.colorImage.src = event.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-    });
+        });
+    }
 
-    document.getElementById('removeColorImage').addEventListener('click', () => {
-        app.colorImage = null;
-        app.colorImageCanvas = createGradientImage(app.colors);
-        app.colorImageCtx = app.colorImageCanvas ? app.colorImageCanvas.getContext('2d') : null;
-        document.getElementById('colorImageUpload').value = '';
-        showNotification('Color image removed.', 'success');
-    });
+    const removeColorImage = document.getElementById('removeColorImage');
+    if (removeColorImage) {
+        removeColorImage.addEventListener('click', () => {
+            app.colorImage = null;
+            app.colorImageCanvas = createGradientImage(app.colors);
+            app.colorImageCtx = app.colorImageCanvas ? app.colorImageCanvas.getContext('2d') : null;
+            const colorImageUploadInput = document.getElementById('colorImageUpload');
+            if (colorImageUploadInput) colorImageUploadInput.value = '';
+            showNotification('Color image removed.', 'success');
+        });
+    }
 
-    document.getElementById('performanceMode').addEventListener('change', (e) => {
-        app.lowPerformanceMode = e.target.checked;
-        updatePerformanceModeUI();
-    });
+    const performanceMode = document.getElementById('performanceMode');
+    if (performanceMode) {
+        performanceMode.addEventListener('change', (e) => {
+            app.lowPerformanceMode = e.target.checked;
+            updatePerformanceModeUI();
+        });
+    }
 
     function updatePerformanceModeUI() {
         const symmetryOptions = document.querySelectorAll('.symmetry-option');
@@ -904,7 +1086,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (value > 4) {
                     option.classList.add('disabled');
                     if (option.classList.contains('active')) {
-                        document.querySelector('.symmetry-option[data-symmetry="4"]').click();
+                        const defaultOption = document.querySelector('.symmetry-option[data-symmetry="4"]');
+                        if (defaultOption) defaultOption.click();
                     }
                 }
             });
@@ -912,7 +1095,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (option.getAttribute('data-spiral') === 'on') {
                     option.classList.add('disabled');
                     if (option.classList.contains('active')) {
-                        document.querySelector('.spiral-option[data-spiral="off"]').click();
+                        const defaultOption = document.querySelector('.spiral-option[data-spiral="off"]');
+                        if (defaultOption) defaultOption.click();
                     }
                 }
             });
@@ -962,155 +1146,197 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, { passive: false });
 
-    document.getElementById('clear').addEventListener('click', () => {
-        app.persistentCtx.clearRect(0, 0, app.canvas.width, app.canvas.height);
-        drawBackground(app.persistentCtx);
-        app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
-        app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
-        app.ctx.drawImage(app.persistentCanvas, 0, 0);
-        app.actions = [];
-        app.redoStack = [];
-        app.strokes = [];
-        app.isDrawingStarted = false;
-        if (app.recording) {
-            app.mediaRecorder.stop();
-            app.recording = false;
-            document.getElementById('saveMP4').textContent = 'Save MP4';
-        }
-        showNotification('Canvas cleared!', 'success');
-    });
-
-    document.getElementById('save').addEventListener('click', () => {
-        const link = document.createElement('a');
-        link.download = 'brush_pattern_art.png';
-        link.href = app.canvas.toDataURL('image/png');
-        link.click();
-        showNotification('PNG saved successfully!', 'success');
-    });
-
-    document.getElementById('saveMP4').addEventListener('click', () => {
-        if (!app.recording) {
-            startMP4Recording();
-        } else {
-            app.mediaRecorder.stop();
-            app.recording = false;
-            document.getElementById('saveMP4').textContent = 'Save MP4';
-        }
-    });
-
-    document.getElementById('undo').addEventListener('click', () => {
-        if (app.actions.length > 1) {
-            app.redoStack.push(app.actions.pop());
-            const lastAction = app.actions[app.actions.length - 1];
-            app.persistentCtx.putImageData(lastAction.imageData, 0, 0);
+    const clearButton = document.getElementById('clear');
+    if (clearButton) {
+        clearButton.addEventListener('click', () => {
+            app.persistentCtx.clearRect(0, 0, app.canvas.width, app.canvas.height);
+            drawBackground(app.persistentCtx);
             app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
             app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
             app.ctx.drawImage(app.persistentCanvas, 0, 0);
-            app.strokes.pop();
-            showNotification('Action undone.', 'success');
-        }
-    });
-
-    document.getElementById('redo').addEventListener('click', () => {
-        if (app.redoStack.length > 0) {
-            const action = app.redoStack.pop();
-            app.persistentCtx.putImageData(action.imageData, 0, 0);
-            app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
-            app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
-            app.ctx.drawImage(app.persistentCanvas, 0, 0);
-            app.actions.push(action);
-            app.strokes.push(action.strokes);
-            showNotification('Action redone.', 'success');
-        }
-    });
-
-    document.getElementById('undoAll').addEventListener('click', () => {
-        if (app.actions.length > 1) {
-            let frameIndex = app.actions.length - 1;
-            function undoFrame() {
-                if (frameIndex > 0) {
-                    app.persistentCtx.putImageData(app.actions[frameIndex - 1].imageData, 0, 0);
-                    app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
-                    app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
-                    app.ctx.drawImage(app.persistentCanvas, 0, 0);
-                    app.redoStack.push(app.actions.pop());
-                    app.strokes.pop();
-                    frameIndex--;
-                    setTimeout(undoFrame, 50);
-                }
+            app.actions = [];
+            app.redoStack = [];
+            app.strokes = [];
+            app.isDrawingStarted = false;
+            if (app.recording) {
+                app.mediaRecorder.stop();
+                app.recording = false;
+                const saveMP4Button = document.getElementById('saveMP4');
+                if (saveMP4Button) saveMP4Button.textContent = 'Save MP4';
             }
-            undoFrame();
-            showNotification('All actions undone.', 'success');
-        }
-    });
+            showNotification('Canvas cleared!', 'success');
+        });
+    }
 
-    document.getElementById('redoAll').addEventListener('click', () => {
-        if (app.redoStack.length > 0) {
-            function redoFrame() {
-                if (app.redoStack.length > 0) {
-                    const action = app.redoStack.pop();
-                    app.persistentCtx.putImageData(action.imageData, 0, 0);
-                    app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
-                    app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
-                    app.ctx.drawImage(app.persistentCanvas, 0, 0);
-                    app.actions.push(action);
-                    app.strokes.push(action.strokes);
-                    setTimeout(redoFrame, 50);
-                }
+    const saveButton = document.getElementById('save');
+    if (saveButton) {
+        saveButton.addEventListener('click', () => {
+            try {
+                const link = document.createElement('a');
+                link.download = 'brush_pattern_art.png';
+                link.href = app.canvas.toDataURL('image/png');
+                link.click();
+                showNotification('PNG saved successfully!', 'success');
+            } catch (err) {
+                showNotification('Error saving PNG.', 'error');
+                console.error('Save PNG error:', err);
             }
-            redoFrame();
-            showNotification('All actions redone.', 'success');
-        }
-    });
+        });
+    }
+
+    const saveMP4Button = document.getElementById('saveMP4');
+    if (saveMP4Button) {
+        saveMP4Button.addEventListener('click', () => {
+            if (!app.recording) {
+                startMP4Recording();
+            } else {
+                app.mediaRecorder.stop();
+                app.recording = false;
+                saveMP4Button.textContent = 'Save MP4';
+            }
+        });
+    }
+
+    const undoButton = document.getElementById('undo');
+    if (undoButton) {
+        undoButton.addEventListener('click', () => {
+            if (app.actions.length > 1) {
+                app.redoStack.push(app.actions.pop());
+                const lastAction = app.actions[app.actions.length - 1];
+                app.persistentCtx.putImageData(lastAction.imageData, 0, 0);
+                app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
+                app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
+                app.ctx.drawImage(app.persistentCanvas, 0, 0);
+                app.strokes.pop();
+                showNotification('Action undone.', 'success');
+            }
+        });
+    }
+
+    const redoButton = document.getElementById('redo');
+    if (redoButton) {
+        redoButton.addEventListener('click', () => {
+            if (app.redoStack.length > 0) {
+                const action = app.redoStack.pop();
+                app.persistentCtx.putImageData(action.imageData, 0, 0);
+                app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
+                app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
+                app.ctx.drawImage(app.persistentCanvas, 0, 0);
+                app.actions.push(action);
+                app.strokes.push(action);
+                showNotification('Action redone.', 'success');
+            }
+        });
+    }
+
+    const undoAllButton = document.getElementById('undoAll');
+    if (undoAllButton) {
+        undoAllButton.addEventListener('click', () => {
+            if (app.actions.length > 1) {
+                let frameIndex = app.actions.length - 1;
+                function undoFrame() {
+                    if (frameIndex > 0) {
+                        app.persistentCtx.putImageData(app.actions[frameIndex - 1].imageData, 0, 0);
+                        app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
+                        app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
+                        app.ctx.drawImage(app.persistentCanvas, 0, 0);
+                        app.redoStack.push(app.actions.pop());
+                        app.strokes.pop();
+                        frameIndex--;
+                        setTimeout(undoFrame, 50);
+                    }
+                }
+                undoFrame();
+                showNotification('All actions undone.', 'success');
+            }
+        });
+    }
+
+    const redoAllButton = document.getElementById('redoAll');
+    if (redoAllButton) {
+        redoAllButton.addEventListener('click', () => {
+            if (app.redoStack.length > 0) {
+                function redoFrame() {
+                    if (app.redoStack.length > 0) {
+                        const action = app.redoStack.pop();
+                        app.persistentCtx.putImageData(action.imageData, 0, 0);
+                        app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
+                        app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
+                        app.ctx.drawImage(app.persistentCanvas, 0, 0);
+                        app.actions.push(action);
+                        app.strokes.push(action);
+                        setTimeout(redoFrame, 50);
+                    }
+                }
+                redoFrame();
+                showNotification('All actions redone.', 'success');
+            }
+        });
+    }
 
     const toggleFullscreenBtn = document.getElementById('toggleFullscreen');
     const showToolbarBtn = document.getElementById('showToolbarBtn');
     const toolbar = document.getElementById('toolbar');
     const container = document.getElementById('canvas-container');
 
-    toggleFullscreenBtn.addEventListener('click', () => {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen();
-            toggleFullscreenBtn.textContent = 'Exit Fullscreen';
-        } else {
-            document.exitFullscreen();
-            toggleFullscreenBtn.textContent = 'Fullscreen';
-        }
-    });
+    if (toggleFullscreenBtn) {
+        toggleFullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    showNotification('Failed to enter fullscreen.', 'error');
+                    console.error('Fullscreen error:', err);
+                });
+                toggleFullscreenBtn.textContent = 'Exit Fullscreen';
+            } else {
+                document.exitFullscreen();
+                toggleFullscreenBtn.textContent = 'Fullscreen';
+            }
+        });
+    }
 
     document.addEventListener('fullscreenchange', () => {
         if (document.fullscreenElement) {
-            container.classList.add('fullscreen');
-            showToolbarBtn.style.display = 'block';
-            toolbar.classList.add('hidden');
+            if (container) container.classList.add('fullscreen');
+            if (showToolbarBtn) showToolbarBtn.style.display = 'block';
+            if (toolbar) toolbar.classList.add('hidden');
         } else {
-            container.classList.remove('fullscreen');
-            showToolbarBtn.style.display = 'none';
-            toolbar.classList.remove('hidden');
-            toolbar.style.transform = 'translateY(0)';
+            if (container) container.classList.remove('fullscreen');
+            if (showToolbarBtn) showToolbarBtn.style.display = 'none';
+            if (toolbar) {
+                toolbar.classList.remove('hidden');
+                toolbar.style.transform = 'translateY(0)';
+            }
             resizeCanvas();
         }
     });
 
-    showToolbarBtn.addEventListener('mouseover', () => {
-        toolbar.classList.remove('hidden');
-        toolbar.style.transform = 'translateY(0)';
-    });
+    if (showToolbarBtn) {
+        showToolbarBtn.addEventListener('mouseover', () => {
+            if (toolbar) {
+                toolbar.classList.remove('hidden');
+                toolbar.style.transform = 'translateY(0)';
+            }
+        });
+    }
 
-    toolbar.addEventListener('mouseleave', () => {
-        if (document.fullscreenElement) {
-            toolbar.style.transform = 'translateY(-100%)';
-        }
-    });
+    if (toolbar) {
+        toolbar.addEventListener('mouseleave', () => {
+            if (document.fullscreenElement && toolbar) {
+                toolbar.style.transform = 'translateY(-100%)';
+            }
+        });
+    }
 
     document.addEventListener('keydown', (e) => {
         if (e.ctrlKey && e.key === 'z') {
             e.preventDefault();
-            document.getElementById('undo').click();
+            const undoButton = document.getElementById('undo');
+            if (undoButton) undoButton.click();
         }
         if (e.key === 'f' || e.key === 'F') {
             e.preventDefault();
-            document.getElementById('toggleFullscreen').click();
+            const toggleFullscreen = document.getElementById('toggleFullscreen');
+            if (toggleFullscreen) toggleFullscreen.click();
         }
     });
 
@@ -1159,8 +1385,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    drawBackground(app.persistentCtx);
-    resizeCanvas();
-    setupTooltips();
-    updatePerformanceModeUI();
+    try {
+        drawBackground(app.persistentCtx);
+        resizeCanvas();
+        setupTooltips();
+        updatePerformanceModeUI();
+    } catch (err) {
+        showNotification('Initialization error.', 'error');
+        console.error('Initialization error:', err);
+    }
 });

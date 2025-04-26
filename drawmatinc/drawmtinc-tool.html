@@ -13,8 +13,7 @@
     <script src="dtjavas.js" defer></script>
 </head>
 <body>
-    
-
+  
     
     <div class="container">
         <div id="toolbar">
@@ -22,7 +21,7 @@
                 <div class="tab-bar">
                     <div class="tab active" data-tab="brush" role="tab" aria-selected="true" tabindex="0">Brush Settings</div>
                     <div class="tab" data-tab="color" role="tab" aria-selected="false" tabindex="0">Color Settings</div>
-                    <div class="tab" data-tab="transformations" role="tab" aria-selected="false" tabindex="0"> Transformations</div>
+                    <div class="tab" data-tab="transformations" role="tab" aria-selected="false" tabindex="0">Transformations</div>
                     <div class="tab" data-tab="background" role="tab" aria-selected="false" tabindex="0">Background Settings</div>
                 </div>
                 <div class="tab-content active" id="brush-tab">
@@ -74,6 +73,7 @@
                             </select>
                         </div>
                         <div class="color-grid" id="colorInputs"></div>
+                        <button id="randomizeAllColors" data-tooltip="Randomize all colors">Randomize All</button>
                         <label for="colorSamplingMethod">Sampling:</label>
                         <select id="colorSamplingMethod">
                             <option value="random" selected>Random</option>
@@ -137,7 +137,6 @@
             <button id="undoAll" data-tooltip="Undo all actions step-by-step" aria-label="Undo all actions">Undo All</button>
             <button id="redoAll" data-tooltip="Redo all undone actions step-by-step" aria-label="Redo all actions">Redo All</button>
             <button id="saveMP4" data-tooltip="Save drawing process as MP4" aria-label="Save as MP4">Save MP4</button>
-         
             <div class="performance-toggle">
                 <label for="performanceMode" data-tooltip="Enable for better performance on low-end devices">LP</label>
                 <input id="performanceMode" type="checkbox" data-tooltip="Low performance Mode: limits symmetry and disables spiral effects" aria-label="Low performance mode" />
@@ -145,17 +144,23 @@
             <div class="slider-container">
                 <label for="canvasResolution">Canvas Resolution:</label>
                 <select id="canvasResolution" data-tooltip="Set canvas resolution">
-                    <option value="hd">HD (1280x720)</option>
-                    <option value="fullhd" selected>Full HD (1920x1080)</option>
-                    <option value="4k">4K (3840x2160)</option>
+                    <option value="hd">HD</option>
+                    <option value="fullhd" selected>Full HD</option>
+                    <option value="4k">4K</option>
                 </select>
-                <label for="videoResolution" data-tooltip="Video resolution for MP4/GIF">Video Resolution:</label>
+                <label for="aspectRatio">Aspect Ratio:</label>
+                <select id="aspectRatio" data-tooltip="Set canvas aspect ratio">
+                    <option value="16:9" selected>16:9</option>
+                    <option value="4:3">4:3</option>
+                    <option value="3:4">3:4</option>
+                    <option value="9:16">9:16</option>
+                </select>
+                <label for="videoResolution" data-tooltip="Video resolution for MP4">Video Resolution:</label>
                 <select id="videoResolution" aria-label="Video Resolution">
                     <option value="720p">720p</option>
                     <option value="1080p" selected>1080p</option>
                 </select>
                 <nav>
-                  
                     <button class="menu-toggle" aria-label="Toggle navigation">
                         <span class="hamburger"></span>
                     </button>
@@ -176,7 +181,7 @@
                 <div class="welcome-content">
                     <h1>Welcome</h1>
                     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9339565698669813"
-     crossorigin="anonymous"></script>
+                        crossorigin="anonymous"></script>
                     <p class="welcome-text">Step into a world of creativity where every stroke tells a story. Unleash your imagination with the Brush Stroke Patterns Drawing Tool!</p>
                     <p id="quote-text" class="quote"></p>
                     <button id="close-welcome" data-tooltip="Begin your creative journey" aria-label="Start creating">Start Creating</button>
