@@ -7,137 +7,77 @@
     <title>Drawmatinc - Drawing Tool Tutorial</title>
     <link rel="stylesheet" href="dthomepage.css"> <!-- Common CSS for your website -->
     <style>
-        /* Tutorial-Specific Styles */
-        .tutorial-container {
-            max-width: 1200px;
-            margin: 6rem auto 2rem auto; /* Space for fixed header */
-            padding: 0 2rem;
-            color: hwb(220 95% 2%);
-        }
-
-        .tutorial-container h1 {
-            font-size: 2.5rem;
-            text-align: center;
-            margin-bottom: 2rem;
-            color: #ffffff;
-        }
-
-        .section {
-            background: #f9f9f9;
-            padding: 1.5rem;
-            border-radius: 8px;
-            margin-bottom: 2rem;
-            box-shadow: 0 2px 5px rgba(215, 215, 215, 0.1);
-        }
-
-        .section h2 {
-            font-size: 1.8rem;
-            color: #3498db;
-            margin-bottom: 1rem;
-        }
-
-        .section p {
-            font-size: 1.1rem;
+        body {
+            font-family: Arial, sans-serif;
             line-height: 1.6;
-            margin-bottom: 1rem;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+            color: #333;
         }
-
-        .step-list {
-            list-style: decimal;
-            padding-left: 2rem;
+        h1, h2, h3 {
+            color: #27362f;
         }
-
-        .step-list li {
-            margin-bottom: 1rem;
-            font-size: 1.1rem;
+        h1 {
+            font-size: 2.2em;
+            border-bottom: 2px solid #1df58d;
+            padding-bottom: 10px;
         }
-
-        .tip {
-            background: #e8f4ff;
-            padding: 1rem;
-            border-left: 4px solid #3498db;
-            margin-top: 1rem;
+        h2 {
+            font-size: 1.8em;
+            margin-top: 20px;
+        }
+        h3 {
+            font-size: 1.4em;
+            margin-top: 15px;
+        }
+        p {
+            margin: 10px 0;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        strong {
+            color: #1df58d;
+        }
+        em {
             font-style: italic;
         }
-
-        .screenshot {
-            width: 100%;
-            max-width: 900px;
-            height: auto;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            margin: 1rem auto;
-            display: block;
+        .tip {
+            background-color: #e8f5e9;
+            border-left: 4px solid #1df58d;
+            padding: 10px;
+            margin: 10px 0;
         }
-        .sidebar {
-            flex: 3; /* 30% width */
-            background: #e9ecef;
-            padding: 1.5rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        .tip::before {
+            content: "Tip: ";
+            font-weight: bold;
+            color: #27362f;
         }
-
-        .sidebar h3 {
-            font-size: 1.5rem;
-            color: #2c3e50;
-            margin-bottom: 1rem;
-        }
-
-        .sidebar ul {
-            list-style: none;
-            padding: 0;
-        }
-
-        .sidebar ul li {
-            margin-bottom: 1rem;
-        }
-
-        .sidebar ul li a {
+        a {
+            color: #1df58d;
             text-decoration: none;
-            color: #3498db;
-            font-size: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: color 0.3s ease;
         }
-
-        .sidebar ul li a:hover {
-            color: #2980b9;
+        a:hover {
             text-decoration: underline;
         }
-
-        .sidebar ul li img {
-            width: 50px;
-            height: 50px;
-            object-fit: cover;
-            border-radius: 4px;
-        }
-
-
-        @media (max-width: 768px) {
-            .tutorial-container h1 {
-                font-size: 2rem;
+        @media (max-width: 600px) {
+            body {
+                padding: 15px;
             }
-
-            .section h2 {
-                font-size: 1.5rem;
+            h1 {
+                font-size: 1.8em;
             }
-
-            .section p, .step-list li {
-                font-size: 1rem;
+            h2 {
+                font-size: 1.5em;
             }
-            .sidebar h3 {
-                font-size: 1.3rem;
-            }
-
-            .sidebar ul li a {
-                font-size: 0.9rem;
-            }
-
-            .sidebar ul li img {
-                width: 40px;
-                height: 40px;
+            h3 {
+                font-size: 1.2em;
             }
         }
     </style>
