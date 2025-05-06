@@ -73,7 +73,7 @@
                             </select>
                         </div>
                         <div class="color-grid" id="colorInputs"></div>
-                        <button id="randomizeAllColors" data-tooltip="Randomize all colors">Randomize All</button>
+                        <button id="randomizeAllColors" data-tooltip="Randomize all colors">Change Colors</button>
                         <label for="colorSamplingMethod">Sampling:</label>
                         <select id="colorSamplingMethod">
                             <option value="random" selected>Random</option>
@@ -195,6 +195,134 @@
             </div>
         </div>
     </div>
+
+
+    <h1>Addressing Performance Issues in Drawmatinc Drawing Tool Due to Hardware Limitations</h1>
+    <p>The Drawmatinc Drawing Tool is a powerful web-based application that enables artists to create intricate, symmetrical designs with customizable brushes and high-speed video recording. However, its advanced features, such as real-time symmetry, spiral effects, and high-resolution canvases, can strain hardware, especially on older or less powerful devices. This article explores potential performance issues users may face due to hardware limitations and provides practical solutions to ensure a smooth drawing experience.</p>
+
+    <h2>Why Hardware Limitations Affect Drawmatinc</h2>
+    <p>Drawmatinc leverages the HTML5 Canvas API to render complex drawings in real time, which requires significant computational resources. Key features like radial symmetry, mirror modes, and video recording demand:</p>
+    <ul>
+        <li><strong>CPU Power</strong>: For calculating symmetry transformations and rendering brush strokes.</li>
+        <li><strong>GPU Acceleration</strong>: For smooth canvas rendering, especially at high resolutions.</li>
+        <li><strong>Memory (RAM)</strong>: To store canvas snapshots, stroke data, and video streams.</li>
+        <li><strong>Browser Performance</strong>: Modern browsers with efficient JavaScript engines and WebGL support are essential.</li>
+    </ul>
+    <p>Older devices, low-end laptops, or budget smartphones may struggle to keep up, leading to performance issues such as lag, stuttering, or browser crashes. Understanding these challenges is the first step to optimizing your experience.</p>
+
+    <h2>Common Performance Issues and Their Causes</h2>
+    <p>Users may encounter the following performance issues when using Drawmatinc on limited hardware:</p>
+
+    <h3>1. Drawing Lag or Stuttering</h3>
+    <p><strong>Symptoms</strong>: Strokes appear delayed, the canvas updates slowly, or the drawing feels unresponsive.</p>
+    <p><strong>Causes</strong>:</p>
+    <ul>
+        <li><strong>High Symmetry Levels</strong>: Using 6 or 8 axes of radial symmetry increases the number of calculations per stroke, taxing the CPU.</li>
+        <li><strong>Spiral Mode</strong>: The spiral effect multiplies stroke transformations, further straining processing power.</li>
+        <li><strong>Complex Brushes</strong>: Brushes like Watercolor or Spider Web involve multiple draw operations, slowing down rendering.</li>
+        <li><strong>High Canvas Resolution</strong>: Resolutions like Full HD (1920x1080) or 4K (3840x2160) require more GPU resources.</li>
+    </ul>
+
+    <h3>2. Slow Video Recording</h3>
+    <p><strong>Symptoms</strong>: Video recording takes too long, produces choppy output, or fails to complete.</p>
+    <p><strong>Causes</strong>:</p>
+    <ul>
+        <li><strong>Large Number of Strokes</strong>: Recording complex drawings with many strokes requires rendering each frame, overwhelming the CPU.</li>
+        <li><strong>High Video Resolution</strong>: Recording at 1080p or higher increases memory and processing demands.</li>
+        <li><strong>Limited RAM</strong>: Storing video chunks and canvas snapshots can exhaust available memory, causing slowdowns or crashes.</li>
+    </ul>
+
+    <h3>3. Browser Crashes or Freezes</h3>
+    <p><strong>Symptoms</strong>: The browser becomes unresponsive, crashes, or displays memory error messages.</p>
+    <p><strong>Causes</strong>:</p>
+    <ul>
+        <li><strong>Memory Overload</strong>: Storing large canvas snapshots (especially at 4K) or extensive stroke data can exceed RAM capacity.</li>
+        <li><strong>Outdated Browser</strong>: Older browsers may lack efficient canvas rendering or MediaRecorder support, leading to instability.</li>
+        <li><strong>Weak GPU</strong>: Devices without hardware-accelerated canvas rendering struggle with real-time updates.</li>
+    </ul>
+
+    <h3>4. Slow UI Response</h3>
+    <p><strong>Symptoms</strong>: Toolbar buttons, sliders, or tabs respond slowly or fail to update.</p>
+    <p><strong>Causes</strong>:</p>
+    <ul>
+        <li><strong>High CPU Usage</strong>: Intensive drawing operations leave little processing power for UI updates.</li>
+        <li><strong>Mobile Devices</strong>: Budget smartphones or tablets may struggle with touch events and canvas rendering simultaneously.</li>
+    </ul>
+
+    <h2>Solutions to Mitigate Performance Issues</h2>
+    <p>Drawmatinc includes features to optimize performance, and users can take additional steps to adapt to their hardware limitations. Here are actionable solutions:</p>
+
+    <h3>1. Enable Low Performance Mode</h3>
+    <p>Drawmatinc’s Low Performance Mode, accessible in the Settings tab, is designed for less powerful devices. It:</p>
+    <ul>
+        <li>Limits radial symmetry to 4 axes, reducing CPU calculations.</li>
+        <li>Disables Spiral Mode, which is computationally intensive.</li>
+        <li>Optimizes brush rendering for simpler operations.</li>
+    </ul>
+    <div class="tip">Enable Low Performance Mode on older laptops or budget smartphones to ensure smooth drawing, especially when using complex brushes.</div>
+
+    <h3>2. Reduce Canvas and Video Resolution</h3>
+    <p>High resolutions like 4K or Full HD demand significant resources. Lower the canvas resolution to HD (1280x720) in the Canvas Resolution dropdown to reduce GPU and memory usage. Similarly, set the video resolution to 720p in the Video Resolution dropdown for faster recording.</p>
+    <div class="tip">If you need high-quality output, draw at 720p and upscale the final image or video using external software to save processing power.</div>
+
+    <h3>3. Simplify Symmetry and Brush Settings</h3>
+    <p>Complex settings exacerbate performance issues. Optimize your workflow by:</p>
+    <ul>
+        <li><strong>Lowering Symmetry Axes</strong>: Use 2 or 4 axes instead of 6 or 8 for simpler patterns.</li>
+        <li><strong>Disabling Spiral Mode</strong>: Turn off spirals to reduce transformation calculations.</li>
+        <li><strong>Using Simpler Brushes</strong>: Opt for Continuous Circle over Watercolor or Spider Web for faster rendering.</li>
+        <li><strong>Reducing Brush Size and Opacity</strong>: Smaller brushes and lower opacity require fewer draw operations.</li>
+    </ul>
+    <div class="tip">Start with minimal settings (e.g., 2-axis symmetry, Continuous Circle brush) to test your device’s capabilities, then gradually increase complexity.</div>
+
+    <h3>4. Optimize Video Recording</h3>
+    <p>Drawmatinc’s optimized recording system uses canvas snapshots to achieve up to 10x faster video generation. To further improve recording performance:</p>
+    <ul>
+        <li><strong>Limit Stroke Count</strong>: Simplify drawings to fewer strokes before recording.</li>
+        <li><strong>Use 720p Resolution</strong>: Lower video resolution reduces memory and processing demands.</li>
+        <li><strong>Close Other Applications</strong>: Free up CPU and RAM by closing unnecessary programs or browser tabs.</li>
+    </ul>
+    <div class="tip">If recording still fails, check the browser console (F12) for errors related to MediaRecorder or canvas streaming, and try a different browser like Chrome or Firefox.</div>
+
+    <h3>5. Update Browser and Drivers</h3>
+    <p>Ensure you’re using a modern browser (e.g., Chrome, Firefox, Edge) with up-to-date WebGL and canvas support. Update your graphics drivers to enable hardware acceleration, which significantly improves canvas rendering. On mobile devices, use the latest version of Chrome or Safari for optimal performance.</p>
+    <div class="tip">Clear your browser cache to free up memory and improve responsiveness, especially on older devices.</div>
+
+    <h3>6. Monitor Hardware Resources</h3>
+    <p>Use your device’s task manager (Windows) or activity monitor (macOS) to check CPU, GPU, and RAM usage while using Drawmatinc. If usage approaches 100%:</p>
+    <ul>
+        <li>Close background applications to free resources.</li>
+        <li>Reduce canvas size or disable complex features like spirals.</li>
+        <li>Consider upgrading RAM or using a more powerful device for intensive tasks.</li>
+    </ul>
+
+    <h3>7. Test on Alternative Devices</h3>
+    <p>If performance issues persist, try Drawmatinc on a different device, such as a newer laptop or tablet. This can help determine if the issue is hardware-specific. For example, a device with at least 4GB RAM, a dual-core CPU, and a modern GPU should handle most Drawmatinc features smoothly.</p>
+
+    <h2>Recommended Hardware for Optimal Performance</h2>
+    <p>To avoid performance issues, aim for the following hardware specifications:</p>
+    <ul>
+        <li><strong>CPU</strong>: Quad-core processor (e.g., Intel i5 or equivalent) for smooth symmetry calculations.</li>
+        <li><strong>RAM</strong>: 8GB or more to handle canvas snapshots and video recording.</li>
+        <li><strong>GPU</strong>: Integrated or dedicated GPU with WebGL support for hardware-accelerated rendering.</li>
+        <li><strong>Browser</strong>: Latest version of Chrome, Firefox, or Edge for efficient JavaScript and canvas performance.</li>
+        <li><strong>Storage</strong>: SSD for faster browser caching and video saving (optional but beneficial).</li>
+    </ul>
+    <p>For mobile devices, mid-range or flagship smartphones/tablets (e.g., 4GB RAM, quad-core CPU) released within the last 3-4 years should perform adequately.</p>
+
+    <h2>Troubleshooting Persistent Issues</h2>
+    <p>If you’ve applied the above solutions and still face issues, try these steps:</p>
+    <ul>
+        <li><strong>Check Console Errors</strong>: Open the browser’s Developer Tools (F12), go to the Console tab, and look for errors related to canvas, MediaRecorder, or memory. Share these with Drawmatinc’s support team.</li>
+        <li><strong>Test Minimal Settings</strong>: Reset Drawmatinc to default settings (e.g., 720p resolution, 2-axis symmetry, Continuous Circle brush) to isolate the issue.</li>
+        <li><strong>Contact Support</strong>: Report persistent crashes or slowdowns, providing details about your device, browser, and settings.</li>
+    </ul>
+    <div class="tip">If Drawmatinc crashes frequently, reduce the canvas resolution to 720p and limit drawings to fewer than 50 strokes until you can upgrade your hardware.</div>
+
+    <h2>Conclusion</h2>
+    <p>The Drawmatinc Drawing Tool offers a rich set of features for creating stunning, symmetrical artwork, but its performance can be affected by hardware limitations. By enabling Low Performance Mode, reducing resolutions, simplifying settings, and optimizing your browser and device, you can mitigate most issues and enjoy a smooth drawing experience. For the best results, use a modern device with adequate CPU, GPU, and RAM, and keep your browser updated.</p>
+    <p>Don’t let hardware constraints hold back your creativity. With these strategies, you can harness Drawmatinc’s full potential to create beautiful designs, record your process, and share your art with the world.</p>
+    <p><em>Ready to draw? Launch Drawmatinc, optimize your settings, and start creating!</em></p>
     <footer>
         <p>© 2025 Drawmatinc. All rights reserved. <a href="privacy.html">Privacy Policy</a> | <a href="contact.html">Contact Us</a></p>
     </footer>
