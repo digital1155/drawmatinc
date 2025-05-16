@@ -142,7 +142,7 @@ body, html {
     overflow-x: auto;
     white-space: nowrap;
     padding: 8px;
-    background: linear-gradient(90deg, #ff6b6b, #368c87, #45b7d1, #96c93d);
+    background: linear-gradient(90deg, #4f0e0e, #251a84, #115f70, #4a6e0a);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
     scrollbar-width: none;
 }
