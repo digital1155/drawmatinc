@@ -721,7 +721,7 @@ function startMP4Recording() {
             app.recording = false;
             const saveMP4Button = document.getElementById('saveMP4');
             if (saveMP4Button) {
-                saveMP4Button.innerHTML = '<img src="MP4.png" alt="SaveMP4 icon">';
+                saveMP4Button.innerHTML = '<img src="icons/MP4.png" alt="SaveMP4 icon">';
                 saveMP4Button.setAttribute('aria-label', 'Save as MP4');
             }
             resizeCanvas();
@@ -735,7 +735,7 @@ function startMP4Recording() {
         app.recording = true;
         const saveMP4Button = document.getElementById('saveMP4');
         if (saveMP4Button) {
-            saveMP4Button.innerHTML = '<img src="savingMP4.png" alt="Stop recording icon">';
+            saveMP4Button.innerHTML = '<img src="icons/savingMP4.png" alt="Stop recording icon">';
             saveMP4Button.setAttribute('aria-label', 'Stop recording');
         }
 
@@ -1301,7 +1301,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         app.recording = false;
                         const saveMP4Button = document.getElementById('saveMP4');
                         if (saveMP4Button) {
-                            saveMP4Button.innerHTML = '<img src="MP4.png" alt="Save MP4 icon">';
+                            saveMP4Button.innerHTML = '<img src="icons/MP4.png" alt="Save MP4 icon">';
                             saveMP4Button.setAttribute('aria-label', 'Save as MP4');
                         }
                     }
@@ -1456,11 +1456,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             showNotification('Failed to enter fullscreen.', 'error');
                             console.error('Fullscreen error:', err);
                         });
-                        toggleFullscreenBtn.innerHTML = '<img src="fscrn.png" alt="Exit fullscreen icon">';
+                        toggleFullscreenBtn.innerHTML = '<img src="icons/fscrn.png" alt="Exit fullscreen icon">';
                         toggleFullscreenBtn.setAttribute('aria-label', 'Exit fullscreen mode');
                     } else {
                         document.exitFullscreen();
-                        toggleFullscreenBtn.innerHTML = '<img src="fscrn.png" alt="Fullscreen icon">';
+                        toggleFullscreenBtn.innerHTML = '<img src="icons/fscrn.png" alt="Fullscreen icon">';
                         toggleFullscreenBtn.setAttribute('aria-label', 'Enter fullscreen mode');
                     }
                 } catch (err) {
