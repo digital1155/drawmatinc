@@ -721,7 +721,7 @@ function startMP4Recording() {
             app.recording = false;
             const saveMP4Button = document.getElementById('saveMP4');
             if (saveMP4Button) {
-                saveMP4Button.innerHTML = '<img src="MP4.png" alt="Save MP4 icon">';
+                saveMP4Button.innerHTML = '<img src="MP4.png" alt="SaveMP4 icon">';
                 saveMP4Button.setAttribute('aria-label', 'Save as MP4');
             }
             resizeCanvas();
