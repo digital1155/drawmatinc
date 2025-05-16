@@ -735,7 +735,7 @@ function startMP4Recording() {
         app.recording = true;
         const saveMP4Button = document.getElementById('saveMP4');
         if (saveMP4Button) {
-            saveMP4Button.innerHTML = '<img src="drawmatinc/icons/savingMP4.png" alt="Stop recording icon">';
+            saveMP4Button.innerHTML = '<img src="savingMP4.png" alt="Stop recording icon">';
             saveMP4Button.setAttribute('aria-label', 'Stop recording');
         }
 
@@ -1301,7 +1301,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         app.recording = false;
                         const saveMP4Button = document.getElementById('saveMP4');
                         if (saveMP4Button) {
-                            saveMP4Button.innerHTML = '<img src="drawmatinc/icons/savingMP4.png" alt="Save MP4 icon">';
+                            saveMP4Button.innerHTML = '<img src="MP4.png" alt="Save MP4 icon">';
                             saveMP4Button.setAttribute('aria-label', 'Save as MP4');
                         }
                     }
