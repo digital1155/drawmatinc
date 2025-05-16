@@ -1,3 +1,43 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,6 +53,15 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.min.js"></script>
     <script src="dtjavas.js" defer></script>
     <style>
+        
+        /* Inline styles for icons (replace with actual paths) */
+         .tab-settings { background: url('home.png') no-repeat center; }
+        .tab-brush { background: url('icons/brushset.png') no-repeat center; }
+        .tab-color { background: url('icons/colorset.png') no-repeat center; }
+        .tab-transform { background: url('icons/trans.png') no-repeat center; }
+        .tab-background { background: url('icons/bg.png') no-repeat center; }
+        .tab-settings { background: url('settings-icon.png') no-repeat center; }
+
         h1, h2, h3 {
             color: #27362f;
         }
@@ -120,183 +169,268 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div id="toolbar">
-            <div id="options-cell">
-                <div class="tab-bar">
-                    <div class="tab active" data-tab="brush" role="tab" aria-selected="true" tabindex="0">Brush Settings</div>
-                    <div class="tab" data-tab="color" role="tab" aria-selected="false" tabindex="0">Color Settings</div>
-                    <div class="tab" data-tab="transformations" role="tab" aria-selected="false" tabindex="0">Transformations</div>
-                    <div class="tab" data-tab="background" role="tab" aria-selected="false" tabindex="0">Background Settings</div>
+   <div class="container">
+        <div id="toolbar" role="region" aria-label="Drawing tool settings">
+            <div id="tab-bar" role="tablist" aria-label="Settings tabs">
+                <div class="tab"  role="tab" aria-selected="true" aria-controls="brush-tab" data-tooltip="Brush Settings" aria-label="Open brush settings">
+                    <a href="#" aria-label="View privacy policy"><img src="icons/home.png" alt="Brush icon"></a>
                 </div>
-                <div class="tab-content active" id="brush-tab">
-                    <select id="brushSelect">
+                <div class="tab active" data-tab="brush" role="tab" aria-selected="true" aria-controls="brush-tab" data-tooltip="Brush Settings" aria-label="Open brush settings">
+                    <img src="icons/brushset.png" alt="Brush icon">
+                </div>
+                <div class="tab" data-tab="color" role="tab" aria-selected="false" aria-controls="color-tab" data-tooltip="Color Settings" aria-label="Open color settings">
+                    <img src="icons/colorset.png" alt="Color palette icon">
+                </div>
+                <div class="tab" data-tab="transform" role="tab" aria-selected="false" aria-controls="transform-tab" data-tooltip="Transformations" aria-label="Open transformation settings">
+                    <img src="icons/trans.png" alt="Transform icon">
+                </div>
+                <div class="tab" data-tab="background" role="tab" aria-selected="false" aria-controls="background-tab" data-tooltip="Background Settings" aria-label="Open background settings">
+                    <img src="icons/bg.png" alt="Background icon">
+                </div>
+                <div class="tab" data-tab="settings" role="tab" aria-selected="false" aria-controls="settings-tab" data-tooltip="Settings" aria-label="Open general settings">
+                    <img src="icons/genset.png" alt="Settings icon">
+                </div>
+            </div>
+            <div id="brush-tab" class="tab-content active" role="tabpanel" aria-labelledby="brush-tab">
+                <div class="dropdown-container">
+                    <label for="brushSelect" aria-label="Select brush type">Brush Type</label>
+                    <select id="brushSelect" aria-label="Select brush type">
                         <option value="web">Wooly</option>
                         <option value="continuousCircle" selected>Straws</option>
                         <option value="watercolor">Watercolor</option>
                         <option value="curlyWings">Curly Wings</option>
                     </select>
-                    <div class="brush-settings" id="webSettings" style="display: none;">
-                        <label for="webDensity">Density:</label><input type="range" id="webDensity" min="1" max="10" value="3" step="1"><span id="webDensityValue">3</span>
-                        <label for="webSpread">Spread:</label><input type="range" id="webSpread" min="0" max="1" value="0.5" step="0.1"><span id="webSpreadValue">0.5</span>
-                        <label for="webWiggle">Wiggle:</label><input type="range" id="webWiggle" min="0" max="1" value="0.1" step="0.1"><span id="webWiggleValue">0.1</span>
-                    </div>
-                    <div class="brush-settings" id="continuousCircleSettings">
-                        <label for="circleSize">Size:</label><input type="range" id="circleSize" min="1" max="50" value="10"><span id="circleSizeValue">10</span>
-                        <label for="borderWidth">Border:</label><input type="range" id="borderWidth" min="1" max="10" value="1"><span id="borderWidthValue">1</span>
-                    </div>
-                    <div class="brush-settings" id="watercolorSettings" style="display: none;">
-                        <label for="watercolorSpread">Spread:</label><input type="range" id="watercolorSpread" min="0" max="1" value="0.5" step="0.1"><span id="watercolorSpreadValue">0.5</span>
-                        <label for="watercolorBleed">Bleed:</label><input type="range" id="watercolorBleed" min="0" max="1" value="0.2" step="0.1"><span id="watercolorBleedValue">0.2</span>
-                    </div>
-                    <div class="brush-settings" id="curlyWingsSettings" style="display: none;">
-                        <label for="wingSize">Size:</label><input type="range" id="wingSize" min="10" max="50" value="30"><span id="wingSizeValue">30</span>
-                        <label for="curlIntensity">Curl:</label><input type="range" id="curlIntensity" min="0" max="1" value="0.5" step="0.1"><span id="curlIntensityValue">0.5</span>
-                        <label for="wingOpacity">Opacity:</label><input type="range" id="wingOpacity" min="0" max="1" value="0.3" step="0.1"><span id="wingOpacityValue">0.3</span>
-                    </div>
-                    <div class="brush-toggle">
-                        <label for="brushSize">Size:</label><input type="range" id="brushSize" min="1" max="100" value="10"><span id="brushSizeValue">10</span>
-                        <label for="smoothness">Smooth:</label><input type="range" id="smoothness" min="1" max="100" value="50"><span id="smoothnessValue">50</span>
-                        <label for="opacity">Opacity:</label><input type="range" id="opacity" min="0" max="1" value="0.1" step="0.01"><span id="opacityValue">0.1</span>
-                    </div>
                 </div>
-                <div class="tab-content" id="color-tab">
-                    <div class="color-picker">
-                        <div class="color-count-container">
-                            <label for="colorCount">Colors:</label>
-                            <select id="colorCount">
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="5">5</option>
-                                <option value="6">6</option>
-                                <option value="7">7</option>
-                                <option value="8">8</option>
-                                <option value="9">9</option>
-                                <option value="10">10</option>
-                            </select>
-                        </div>
-                        <div class="color-grid" id="colorInputs"></div>
-                        <button id="randomizeAllColors" data-tooltip="Randomize all colors">Change Colors</button>
-                        <label for="colorSamplingMethod">Sampling:</label>
-                        <select id="colorSamplingMethod">
-                            <option value="random" selected>Random</option>
-                            <option value="spatial">Spatial</option>
-                            <option value="horizontal">Horizontal</option>
-                            <option value="vertical">Vertical</option>
-                            <option value="radial">Radial</option>
-                        </select>
-                        <input type="file" id="colorImageUpload" accept="image/*">
-                        <button id="removeColorImage">Remove</button>
-                    </div>
+                <div id="webSettings" class="dropdown-container" style="display: none;">
+                    <label for="webDensity" aria-label="Adjust web brush density">Density</label>
+                    <input type="range" id="webDensity" min="1" max="10" value="3" aria-label="Web brush density">
+                    <span id="webDensityValue">3</span>
+                    <label for="webSpread" aria-label="Adjust web brush spread">Spread</label>
+                    <input type="range" id="webSpread" min="0" max="1" step="0.1" value="0.5" aria-label="Web brush spread">
+                    <span id="webSpreadValue">0.5</span>
+                    <label for="webWiggle" aria-label="Adjust web brush wiggle">Wiggle</label>
+                    <input type="range" id="webWiggle" min="0" max="1" step="0.1" value="0.1" aria-label="Web brush wiggle">
+                    <span id="webWiggleValue">0.1</span>
                 </div>
-                <div class="tab-content" id="transformations-tab">
-                    <div class="symmetry-options">
-                        <h4>Symmetry:</h4>
-                        <div class="symmetry-option" data-symmetry="1">1</div>
-                        <div class="symmetry-option" data-symmetry="2">2</div>
-                        <div class="symmetry-option" data-symmetry="3">3</div>
-                        <div class="symmetry-option active" data-symmetry="4">4</div>
-                        <div class="symmetry-option" data-symmetry="5">5</div>
-                        <div class="symmetry-option" data-symmetry="6">6</div>
-                        <div class="symmetry-option" data-symmetry="7">7</div>
-                        <div class="symmetry-option" data-symmetry="8">8</div>
-                    </div>
-                    <div class="mirror-options">
-                        <h4>Mirror:</h4>
-                        <div class="mirror-option active" data-mirror="none">None</div>
-                        <div class="mirror-option" data-mirror="horizontal">Horizontal</div>
-                        <div class="mirror-option" data-mirror="vertical">Vertical</div>
-                    </div>
-                    <div class="spiral-options">
-                        <h4>Spiral:</h4>
-                        <div class="spiral-option active" data-spiral="off">Off</div>
-                        <div class="spiral-option" data-spiral="on">On</div>
-                    </div>
-                    <div class="brush-settings" id="spiralSettings" style="display: none;">
-                        <label for="spiralSteps">Steps:</label><input type="range" id="spiralSteps" min="1" max="20" value="10" step="1"><span id="spiralStepsValue">10</span>
-                    </div>
+                <div id="continuousCircleSettings" class="dropdown-container">
+                    <label for="circleSize" aria-label="Adjust circle brush size">Size</label>
+                    <input type="range" id="circleSize" min="1" max="50" value="20" aria-label="Circle brush size">
+                    <span id="circleSizeValue">20</span>
+                    <label for="borderWidth" aria-label="Adjust circle brush border width">Border</label>
+                    <input type="range" id="borderWidth" min="0" max="5" value="1" aria-label="Circle brush border width">
+                    <span id="borderWidthValue">1</span>
                 </div>
-                <div class="tab-content" id="background-tab">
-                    <div class="background-settings">
-                        <input type="file" id="bgImageUpload" accept="image/*">
-                        <label for="bgColor">Color 1:</label><input type="color" id="bgColor" value="#27362f">
-                        <label for="bgColor2">Color 2:</label><input type="color" id="bgColor2" value="#1a252f">
-                        <div class="gradient-toggle">
-                            <label for="gradientBg">Gradient:</label><input type="checkbox" id="gradientBg">
-                        </div>
-                        <div class="transparent-toggle">
-                            <label for="transparentBg">Transparent:</label><input type="checkbox" id="transparentBg">
-                        </div>
-                    </div>
+                <div id="watercolorSettings" class="dropdown-container" style="display: none;">
+                    <label for="watercolorSpread" aria-label="Adjust watercolor brush spread">Spread</label>
+                    <input type="range" id="watercolorSpread" min="0" max="1" step="0.1" value="0.5" aria-label="Watercolor brush spread">
+                    <span id="watercolorSpreadValue">0.5</span>
+                    <label for="watercolorBleed" aria-label="Adjust watercolor brush bleed">Bleed</label>
+                    <input type="range" id="watercolorBleed" min="0" max="1" step="0.1" value="0.2" aria-label="Watercolor brush bleed">
+                    <span id="watercolorBleedValue">0.2</span>
+                </div>
+                <div id="curlyWingsSettings" class="dropdown-container" style="display: none;">
+                    <label for="wingSize" aria-label="Adjust curly wings brush size">Size</label>
+                    <input type="range" id="wingSize" min="10" max="50" value="30" aria-label="Curly wings brush size">
+                    <span id="wingSizeValue">30</span>
+                    <label for="curlIntensity" aria-label="Adjust curly wings brush curl intensity">Curl</label>
+                    <input type="range" id="curlIntensity" min="0" max="1" step="0.1" value="0.5" aria-label="Curly wings brush curl intensity">
+                    <span id="curlIntensityValue">0.5</span>
+                    <label for="wingOpacity" aria-label="Adjust curly wings brush opacity">Opacity</label>
+                    <input type="range" id="wingOpacity" min="0" max="1" step="0.1" value="0.3" aria-label="Curly wings brush opacity">
+                    <span id="wingOpacityValue">0.3</span>
+                </div>
+                <div class="dropdown-container">
+                    <label for="brushSize" aria-label="Adjust overall brush size">Brush Size</label>
+                    <input type="range" id="brushSize" min="1" max="100" value="10" aria-label="Overall brush size">
+                    <span id="brushSizeValue">10</span>
+                </div>
+                <div class="dropdown-container">
+                    <label for="smoothness" aria-label="Adjust brush smoothness">Smoothness</label>
+                    <input type="range" id="smoothness" min="1" max="100" value="50" aria-label="Brush smoothness">
+                    <span id="smoothnessValue">50</span>
+                </div>
+                <div class="dropdown-container">
+                    <label for="opacity" aria-label="Adjust brush opacity">Opacity</label>
+                    <input type="range" id="opacity" min="0" max="1" step="0.1" value="0.1" aria-label="Brush opacity">
+                    <span id="opacityValue">0.1</span>
                 </div>
             </div>
+            <div id="color-tab" class="tab-content" role="tabpanel" aria-labelledby="color-tab">
+                <div class="dropdown-container">
+                    <label for="colorCount" aria-label="Select number of colors">Colors</label>
+                    <select id="colorCount" aria-label="Select number of colors">
+                        <option value="1" >1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5" >5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                        <option value="9">9</option>
+                        <option value="10" selected>10</option>
+                    </select>
+                </div>
+                <div id="colorInputs" class="dropdown-container"></div>
+                <div class="dropdown-container">
+                    <button id="randomizeAllColors" aria-label="Randomize all colors">Change Colors</button>
+                </div>
+                <div class="dropdown-container">
+                    <label for="colorSamplingMethod" aria-label="Select color sampling method">Sampling</label>
+                    <select id="colorSamplingMethod" aria-label="Select color sampling method">
+                        <option value="random">Random</option>
+                        <option value="spatial" selected>Spatial</option>
+                        <option value="horizontal">Horizontal</option>
+                        <option value="vertical">Vertical</option>
+                        <option value="radial">Radial</option>
+                    </select>
+                </div>
+                <div class="dropdown-container">
+                    <label for="colorImageUpload" aria-label="Upload image for color sampling">Upload Color Image</label>
+                    <input type="file" id="colorImageUpload" accept="image/*" aria-label="Upload image for color sampling">
+                </div>
+                <div class="dropdown-container">
+                    <button id="removeColorImage" aria-label="Remove uploaded color image">Remove</button>
+                </div>
+            </div>
+            <div id="transform-tab" class="tab-content" role="tabpanel" aria-labelledby="transform-tab">
+                <div class="dropdown-container">
+                    <label for="symmetrySelect" aria-label="Select symmetry axes">Symmetry</label>
+                    <select id="symmetrySelect" aria-label="Select symmetry axes">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4" selected>4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                    </select>
+                </div>
+                <div class="dropdown-container">
+                    <label for="mirrorSelect" aria-label="Select mirror mode">Mirror</label>
+                    <select id="mirrorSelect" aria-label="Select mirror mode">
+                        <option value="none" >Vertical</option>
+                        <option value="horizontal">Horizontal</option>
+                        <option value="vertical" selected>Vertical</option>
+                    </select>
+                </div>
+                <div class="dropdown-container">
+                    <label for="spiralSelect" aria-label="Select spiral mode">Spiral</label>
+                    <select id="spiralSelect" aria-label="Select spiral mode">
+                        <option value="off" selected>Off</option>
+                        <option value="on">On</option>
+                    </select>
+                </div>
+                <div id="spiralSettings" class="dropdown-container" style="display: none;">
+                    <label for="spiralSteps" aria-label="Adjust spiral steps">Steps</label>
+                    <input type="range" id="spiralSteps" min="1" max="20" value="10" aria-label="Spiral steps">
+                    <span id="spiralStepsValue">10</span>
+                </div>
+            </div>
+            <div id="background-tab" class="tab-content" role="tabpanel" aria-labelledby="background-tab">
+                <div class="dropdown-container">
+                    <label for="bgColor" aria-label="Select first background color">Color 1</label>
+                    <input type="color" id="bgColor" value="#000000" aria-label="First background color">
+                </div>
+                <div class="dropdown-container">
+                    <label for="bgColor2" aria-label="Select second background color">Color 2</label>
+                    <input type="color" id="bgColor2" value="#1a252f" aria-label="Second background color">
+                </div>
+                <div class="dropdown-container">
+                    <label for="gradientBg" aria-label="Enable gradient background">Gradient</label>
+                    <input type="checkbox" id="gradientBg" aria-label="Enable gradient background">
+                </div>
+                <div class="dropdown-container">
+                    <label for="transparentBg" aria-label="Enable transparent background">Transparent</label>
+                    <input type="checkbox" id="transparentBg" aria-label="Enable transparent background">
+                </div>
+                <div class="dropdown-container">
+                    <label for="bgImageUpload" aria-label="Upload background image">Upload Background</label>
+                    <input type="file" id="bgImageUpload" accept="image/*" aria-label="Upload background image">
+                </div>
+                <button id="removeBgImage">Remove Background</button>
+            </div>
+            <div id="settings-tab" class="tab-content" role="tabpanel" aria-labelledby="settings-tab">
+                <div class="dropdown-container">
+                    <label for="performanceMode" aria-label="Enable low performance mode">Low Performance Mode</label>
+                    <input type="checkbox" id="performanceMode" aria-label="Enable low performance mode">
+                </div>
+                <div class="dropdown-container">
+                    <label for="canvasResolution" aria-label="Select canvas resolution">Canvas Resolution</label>
+                    <select id="canvasResolution" aria-label="Select canvas resolution">
+                        <option value="hd">HD</option>
+                        <option value="fullhd" selected>Full HD</option>
+                        <option value="4k">4K</option>
+                    </select>
+                </div>
+                <div class="dropdown-container">
+                    <label for="aspectRatio" aria-label="Select aspect ratio">Aspect Ratio</label>
+                    <select id="aspectRatio" aria-label="Select aspect ratio">
+                        <option value="16:9" selected>16:9</option>
+                        <option value="4:3">4:3</option>
+                        <option value="3:4">3:4</option>
+                        <option value="9:16">9:16</option>
+                    </select>
+                </div>
+                <div class="dropdown-container">
+                    <label for="videoResolution" aria-label="Select video resolution">Video Resolution</label>
+                    <select id="videoResolution" aria-label="Select video resolution">
+                        <option value="720p">720p</option>
+                        <option value="1080p" selected>1080p</option>
+                    </select>
+                </div>
+            </div>
+               <div id="actions-row" role="toolbar" aria-label="Drawing actions">
+            <button id="clear" data-tooltip="Clear Canvas" aria-label="Clear canvas">
+                <img src="icons/clear.png" alt="Clear icon">
+            </button>
+            <button id="undo" data-tooltip="Undo" aria-label="Undo last action">
+                <img src="icons/undo.png" alt="Undo icon">
+            </button>
+            <button id="redo" data-tooltip="Redo" aria-label="Redo last action">
+                <img src="icons/redo.png" alt="Redo icon">
+            </button>
+            <button id="undoAll" data-tooltip="Undo All" aria-label="Undo all actions">
+                <img src="icons/undoall.png" alt="Undo all icon">
+            </button>
+            <button id="redoAll" data-tooltip="Redo All" aria-label="Redo all actions">
+                <img src="icons/redoall.png" alt="Redo all icon">
+            </button>
+            <button id="save" data-tooltip="Save PNG" aria-label="Save as PNG">
+                <img src="icons/savepng.png" alt="Save PNG icon">
+            </button>
+            <button id="saveMP4" data-tooltip="Save MP4" aria-label="Save as MP4">
+                <img src="icons/MP4.png" alt="Save MP4 icon">
+            </button>
+            <button id="saveGIF" data-tooltip="Save GIF" aria-label="Save as GIF">
+                Save GIF
+            </button>
+            <button id="saveSVG" data-tooltip="Save SVG" aria-label="Save as SVG">
+                Save SVG
+            </button>
+            <button id="toggleFullscreen" data-tooltip="Toggle Fullscreen" aria-label="Toggle fullscreen mode">
+                <img src="icons/fscrn.png" alt="Fullscreen icon">
+            </button>
         </div>
-        <div id="actions-row">
-            <button id="clear" data-tooltip="Clear the entire canvas" aria-label="Clear the canvas"><i class="fas fa-trash"></i></button>
-            <button id="save" data-tooltip="Save your artwork as a PNG" aria-label="Save artwork"><i class="fas fa-save"></i></button>
-            <button id="toggleFullscreen" data-tooltip="Toggle fullscreen mode (F)" aria-label="Toggle fullscreen"><i class="fas fa-expand"></i></button>
-            <button id="undo" data-tooltip="Undo the last action (Ctrl+Z)" aria-label="Undo last action"><i class="fas fa-undo"></i></button>
-            <button id="redo" data-tooltip="Redo the last undone action" aria-label="Redo last action"><i class="fas fa-redo"></i></button>
-            <button id="undoAll" data-tooltip="Undo all actions step-by-step" aria-label="Undo all actions"><i class="fas fa-fast-backward"></i></button>
-            <button id="redoAll" data-tooltip="Redo all undone actions step-by-step" aria-label="Redo all actions"><i class="fas fa-fast-forward"></i></button>
-            <button id="saveMP4" data-tooltip="Save drawing process as MP4" aria-label="Save as MP4"><i class="fas fa-video"></i></button>
-            <div class="performance-toggle">
-                <label for="performanceMode" data-tooltip="Enable for better performance on low-end devices">LP</label>
-                <input id="performanceMode" type="checkbox" data-tooltip="Low performance Mode: limits symmetry and disables spiral effects" aria-label="Low performance mode" />
-            </div>
-            <div class="slider-container">
-                <label for="canvasResolution">Canvas Resolution:</label>
-                <select id="canvasResolution" data-tooltip="Set canvas resolution">
-                    <option value="hd">HD</option>
-                    <option value="fullhd" selected>Full HD</option>
-                    <option value="4k">4K</option>
-                </select>
-                <label for="aspectRatio">Aspect Ratio:</label>
-                <select id="aspectRatio" data-tooltip="Set canvas aspect ratio">
-                    <option value="16:9" selected>16:9</option>
-                    <option value="4:3">4:3</option>
-                    <option value="3:4">3:4</option>
-                    <option value="9:16">9:16</option>
-                </select>
-                <label for="videoResolution" data-tooltip="Video resolution for MP4">Video Resolution:</label>
-                <select id="videoResolution" aria-label="Video Resolution">
-                    <option value="720p">720p</option>
-                    <option value="1080p" selected>1080p</option>
-                </select>
-                <nav>
-                    <button class="menu-toggle" aria-label="Toggle navigation">
-                        <span class="hamburger"></span>
-                    </button>
-                    <ul class="nav-menu">
-                        <li><a href="index.html">Home</a></li>
-                        <li><a href="tutorial.html">Tutorials</a></li>
-                        <li><a href="blog.html">Blog</a></li>
-                        <li><a href="gallery.html">Gallery</a></li>
-                        <li><a href="about.html">About</a></li>
-                        <li><a href="contact.html">Contact</a></li>
-                        <li><a href="privacy.html">Privacy Policy</a></li>
-                    </ul>
-                </nav>
-            </div>
         </div>
+     
         <div id="canvas-container">
-            <div id="welcome-screen">
-                <div class="welcome-content">
-                    <h1>Welcome</h1>
-                    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9339565698669813" crossorigin="anonymous"></script>
-                    <p class="welcome-text">Step into a world of creativity where every stroke tells a story. Unleash your imagination with the Brush Stroke Patterns Drawing Tool!</p>
-                    <p id="quote-text" class="quote"></p>
-                    <button id="close-welcome" data-tooltip="Begin your creative journey" aria-label="Start creating">Start Creating</button>
-                </div>
+            <canvas id="canvas" aria-label="Drawing canvas"></canvas>
+            <button id="showToolbarBtn" aria-label="Show toolbar">Show Toolbar</button>
+        </div>
+        <div id="welcome-screen">
+            <div class="welcome-content">
+                <h1>Welcome</h1>
+                <p class="welcome-text">Step into a world of creativity where every stroke tells a story. Unleash your imagination with the Brush Stroke Patterns Drawing Tool!</p>
+                <p class="quote" id="quote-text"></p>
+                <button id="close-welcome" aria-label="Start creating">Start Creating</button>
             </div>
-            <canvas id="canvas"></canvas>
-            <button id="showToolbarBtn" data-tooltip="Show the toolbar" aria-label="Show toolbar">Toolbar</button>
-            <div id="orientation-overlay">
-                <p>For the best experience<br>please switch to desktop mode.</p>
-                <button id="dismiss-overlay" data-tooltip="Continue in current mode" aria-label="Continue in current mode">Continue</button>
-            </div>
+        </div>
+        <div id="orientation-overlay">
+            <p>For the best experience, please switch to desktop mode.</p>
+            <button id="dismiss-overlay" aria-label="Continue in portrait mode">Continue</button>
+        </div>
         </div>
         <section class="article-section">
             <h1>Addressing Performance Issues in Drawmatinc Drawing Tool Due to Hardware Limitations</h1>
