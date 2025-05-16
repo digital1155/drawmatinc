@@ -92,6 +92,7 @@ body, html {
     transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
+
 .tab-content.active {
     display: flex;
     opacity: 1;
@@ -150,7 +151,11 @@ body, html {
 #actions-row::-webkit-scrollbar {
     display: none;
 }
-
+#rbg {
+    display: flex;
+    gap: 8px;
+    align-items: left;
+}
 #actions-row button {
     min-width: 40px;
     height: 40px;
