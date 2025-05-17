@@ -155,7 +155,7 @@ body, html {
     display: flex;
     gap: 8px;
     align-items: left;
-    width: 20%;
+    width: 200px;
 }
 #actions-row button {
     min-width: 40px;
