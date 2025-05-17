@@ -183,7 +183,8 @@ class SymmetryTransformer {
 function resizeCanvas() {
     const app = DrawingApp;
     try {
-        const toolbarContainer = document.getElementById('toolbar-container');
+        const toolbar = document.getElementById('toolbar');
+        const actionsRow = document.getElementById('actions-row');
         const isFullscreen = document.fullscreenElement !== null;
         let tempImageData = null;
         if (app.persistentCanvas && app.persistentCanvas.width > 0 && app.persistentCanvas.height > 0) {
@@ -202,7 +203,7 @@ function resizeCanvas() {
             app.canvas.style.width = '100%';
             app.canvas.style.height = '100%';
         } else {
-            const toolbarHeight = toolbarContainer ? toolbarContainer.offsetHeight : 0;
+            const toolbarHeight = (toolbar ? toolbar.offsetHeight : 0) + (actionsRow ? actionsRow.offsetHeight : 0);
             const availableWidth = window.innerWidth - 24;
             const availableHeight = window.innerHeight - toolbarHeight - 24;
             let displayWidth = availableWidth;
@@ -283,9 +284,15 @@ function draw(e) {
     const app = DrawingApp;
     try {
         e.preventDefault();
-        if (!app.painting || (e.buttons !== 1 && !e.touches)) return;
+        if (!app.painting || (e.buttons !== 1 && !e.touches)) {
+            console.log('Draw skipped: Not painting or no valid input');
+            return;
+        }
         const currentTime = performance.now();
-        if (currentTime - app.lastDrawTime < 16) return;
+        if (currentTime - app.lastDrawTime < 16) {
+            console.log('Draw skipped: Frame rate limit');
+            return;
+        }
         app.lastDrawTime = currentTime;
 
         const canvasRect = app.canvas.getBoundingClientRect();
@@ -297,12 +304,15 @@ function draw(e) {
         let currentX = (clientX - canvasRect.left) * scaleX / app.scale;
         let currentY = (clientY - canvasRect.top) * scaleY / app.scale;
 
+        console.log(`Drawing at (${currentX}, ${currentY}) with brush: ${app.currentBrush}`);
+
         const pressure = e.pressure !== undefined ? e.pressure : 0.5;
         const adjustedBrushSize = app.brushSize * (0.2 + 0.8 * pressure);
         const adjustedCircleSize = app.circleSize * (0.2 + 0.8 * pressure);
 
         if (!app.isDrawingStarted) {
             app.isDrawingStarted = true;
+            console.log('Drawing started');
         }
 
         if (app.lastX !== undefined && app.lastY !== undefined) {
@@ -374,6 +384,7 @@ function draw(e) {
                 }
             });
             app.redoStack = [];
+            console.log('Stroke recorded:', strokePoints.length, 'points');
         }
         app.lastX = currentX;
         app.lastY = currentY;
@@ -434,11 +445,13 @@ function drawBrush(x, y, dx, dy, adjustedBrushSize, adjustedCircleSize) {
     const app = DrawingApp;
     try {
         const color = getColor(x, y);
+        console.log(`Drawing brush: ${app.currentBrush} at (${x}, ${y}) with size: ${adjustedBrushSize}, color: ${color}`);
         switch (app.currentBrush) {
             case 'web': drawSpiderWeb(app.offscreenCtx, x, y, adjustedBrushSize, color); break;
             case 'continuousCircle': drawContinuousCircles(app.offscreenCtx, x, y, dx, dy, adjustedCircleSize, color); break;
             case 'watercolor': drawWatercolor(app.offscreenCtx, x, y, dx, dy, adjustedBrushSize, color); break;
             case 'curlyWings': drawCurlyWings(app.offscreenCtx, x, y, dx, dy, adjustedBrushSize, color); break;
+            default: console.warn(`Unknown brush type: ${app.currentBrush}`);
         }
     } catch (err) {
         console.error('Brush draw error:', err);
@@ -504,6 +517,7 @@ function drawSpiderWeb(ctx, x, y, size, color) {
         ctx.lineWidth = 1;
         ctx.stroke();
         ctx.globalAlpha = 1.0;
+        console.log(`Spider web drawn at (${x}, ${y})`);
     } catch (err) {
         console.error('Spider web draw error:', err);
     }
@@ -519,6 +533,7 @@ function drawContinuousCircles(ctx, x, y, dx, dy, size, color) {
         ctx.arc(x, y, size, 0, Math.PI * 2);
         ctx.stroke();
         ctx.globalAlpha = 1.0;
+        console.log(`Continuous circle drawn at (${x}, ${y})`);
     } catch (err) {
         console.error('Continuous circles draw error:', err);
     }
@@ -542,6 +557,7 @@ function drawWatercolor(ctx, x, y, dx, dy, size, color) {
             ctx.fill();
         }
         ctx.globalAlpha = 1.0;
+        console.log(`Watercolor drawn at (${x}, ${y})`);
     } catch (err) {
         console.error('Watercolor draw error:', err);
     }
@@ -592,6 +608,7 @@ function drawCurlyWings(ctx, x, y, dx, dy, size, color) {
             ctx.stroke();
         }
         ctx.globalAlpha = 1.0;
+        console.log(`Curly wings drawn at (${x}, ${y})`);
     } catch (err) {
         console.error('Curly wings draw error:', err);
     }
@@ -602,6 +619,7 @@ function startPosition(e) {
     const app = DrawingApp;
     try {
         e.preventDefault();
+        console.log('startPosition triggered:', e.type);
         const canvasRect = app.canvas.getBoundingClientRect();
         const resolution = getInternalResolution();
         const scaleX = resolution.width / canvasRect.width;
@@ -615,6 +633,7 @@ function startPosition(e) {
         app.offscreenCtx.clearRect(0, 0, app.offscreenCanvas.width, app.offscreenCanvas.height);
         app.ctx.globalCompositeOperation = 'source-over';
         const pressure = e.pressure !== undefined ? e.pressure : 0.5;
+        console.log(`Starting draw at (${app.lastX}, ${app.lastY})`);
         drawWithSymmetry(app.lastX, app.lastY, 0, 0, app.brushSize * (0.2 + 0.8 * pressure), app.circleSize * (0.2 + 0.8 * pressure));
         app.persistentCtx.drawImage(app.offscreenCanvas, 0, 0);
         app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
@@ -645,7 +664,7 @@ function startPosition(e) {
             }
         });
         app.actions.push({
-            imageData: app.persistentCtx.getImageData(0, 0, app.canvas.width, app.canvas.height),
+            imageData: app.potentialCtx.getImageData(0, 0, app.canvas.width, app.canvas.height),
             strokes: [{ x: app.lastX, y: app.lastY }],
             brush: app.currentBrush,
             size: app.brushSize * (0.2 + 0.8 * pressure),
@@ -721,7 +740,7 @@ function startMP4Recording() {
             app.recording = false;
             const saveMP4Button = document.getElementById('saveMP4');
             if (saveMP4Button) {
-                saveMP4Button.innerHTML = '<img src="MP4.png" alt="SaveMP4 icon">';
+                saveMP4Button.innerHTML = '<img src="icons/MP4.png" alt="Save MP4 icon">';
                 saveMP4Button.setAttribute('aria-label', 'Save as MP4');
             }
             resizeCanvas();
@@ -735,7 +754,7 @@ function startMP4Recording() {
         app.recording = true;
         const saveMP4Button = document.getElementById('saveMP4');
         if (saveMP4Button) {
-            saveMP4Button.innerHTML = '<img src="savingMP4.png" alt="Stop recording icon">';
+            saveMP4Button.innerHTML = '<img src="icons/savingMP4.png" alt="Stop recording icon">';
             saveMP4Button.setAttribute('aria-label', 'Stop recording');
         }
 
@@ -805,7 +824,10 @@ document.addEventListener('DOMContentLoaded', () => {
         app.persistentCtx = app.persistentCanvas.getContext('2d', { willReadFrequently: true });
         app.offscreenCanvas = document.createElement('canvas');
         app.offscreenCtx = app.offscreenCanvas.getContext('2d', { willReadFrequently: true });
-        console.log('Canvas initialized successfully');
+        // Ensure canvas is interactive
+        app.canvas.style.pointerEvents = 'auto';
+        app.canvas.style.touchAction = 'none';
+        console.log('Canvas initialized successfully:', app.canvas.width, app.canvas.height);
     } catch (err) {
         showNotification('Failed to initialize canvas.', 'error');
         console.error('Canvas initialization error:', err);
@@ -826,7 +848,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "Painting is just another way of keeping a diary...:Pablo Picasso",
             "Art enables us to find ourselves and lose ourselves at the same time...:Thomas Merton",
             "To practice any art, no matter how well or badly, is a way to make your soul grow. So do it...:Kurt Vonnegut",
-            "The world always seems brighter when you’ve just made something that wasn’t there before...:Neil Gaiman",
+            "The world always seems brighter when you've just made something that wasn't there before...:Neil Gaiman",
             "Art is the journey of a free soul...:Alev Oguz",
             "Every canvas is a journey all its own...:Helen Frankenthaler"
         ];
@@ -918,7 +940,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         document.addEventListener('click', (e) => {
-            const toolbar = document.getElementById('toolbar-container');
+            const toolbar = document.getElementById('toolbar');
             if (toolbar && !toolbar.contains(e.target)) {
                 hideToolbarOptions();
             }
@@ -1023,6 +1045,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     container.style.alignItems = 'center';
 
                     const label = document.createElement('label');
+                    label.id = `colorLabel${i + 1}`;
                     label.textContent = `Color ${i + 1}`;
                     label.setAttribute('for', `colorPicker${i + 1}`);
 
@@ -1030,7 +1053,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     input.type = 'color';
                     input.id = `colorPicker${i + 1}`;
                     input.value = app.colors[i] || app.defaultColors[i % app.defaultColors.length];
-                    input.setAttribute('aria-label', `Color ${i + 1} picker`);
+                    input.setAttribute('aria-labelledby', `colorLabel${i + 1}`);
                     input.style.width = isSmallScreen ? '30px' : '40px';
                     input.style.height = isSmallScreen ? '30px' : '40px';
                     input.style.marginTop = '4px';
@@ -1088,9 +1111,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        const removeColorImageButton = document.getElementById('removeColorImage');
-        if (removeColorImageButton) {
-            removeColorImageButton.addEventListener('click', () => {
+        const removeColorImage = document.getElementById('removeColorImage');
+        if (removeColorImage) {
+            removeColorImage.addEventListener('click', () => {
                 try {
                     app.colorImage = null;
                     app.colorImageCanvas = createGradientImage(app.colors);
@@ -1104,21 +1127,21 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        const removeBgImageButton = document.getElementById('removeBgImage');
-        if (removeBgImageButton) {
-            removeBgImageButton.addEventListener('click', () => {
+        const removeBgButton = document.getElementById('removeBg');
+        if (removeBgButton) {
+            removeBgButton.addEventListener('click', () => {
                 try {
                     app.bgImage = null;
-                    const bgImageUploadInput = document.getElementById('bgImageUpload');
-                    if (bgImageUploadInput) bgImageUploadInput.value = '';
+                    app.transparentBg = false;
+                    app.gradientBg = false;
                     drawBackground(app.persistentCtx);
                     app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
                     app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
                     app.ctx.drawImage(app.persistentCanvas, 0, 0);
-                    showNotification('Background image removed.', 'success');
+                    showNotification('Background removed.', 'success');
                 } catch (err) {
-                    console.error('Remove background image error:', err);
-                    showNotification('Failed to remove background image.', 'error');
+                    console.error('Remove background error:', err);
+                    showNotification('Failed to remove background.', 'error');
                 }
             });
         }
@@ -1149,13 +1172,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const brushSelect = document.getElementById('brushSelect');
                 if (brushSelect) {
                     brushSelect.addEventListener('change', function() {
-                        const brushMap = {
-                            'Wooly': 'web',
-                            'Straws': 'continuousCircle',
-                            'Watercolor': 'watercolor',
-                            'Curly Wings': 'curlyWings'
-                        };
-                        app.currentBrush = brushMap[this.value] || 'continuousCircle';
+                        app.currentBrush = this.value;
+                        console.log(`Brush changed to: ${app.currentBrush}`);
                         ['webSettings', 'continuousCircleSettings', 'watercolorSettings', 'curlyWingsSettings'].forEach(id => {
                             const element = document.getElementById(id);
                             if (element) element.style.display = app.currentBrush === id.split('Settings')[0] ? 'flex' : 'none';
@@ -1242,15 +1260,23 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        app.canvas.addEventListener('pointerdown', startPosition);
-        app.canvas.addEventListener('pointermove', draw);
+        app.canvas.addEventListener('pointerdown', (e) => {
+            console.log('Pointerdown event:', e);
+            startPosition(e);
+        });
+        app.canvas.addEventListener('pointermove', (e) => {
+            console.log('Pointermove event:', e);
+            draw(e);
+        });
         document.addEventListener('pointerup', () => {
+            console.log('Pointerup event');
             app.painting = false;
             app.lastX = undefined;
             app.lastY = undefined;
         });
 
         app.canvas.addEventListener('touchstart', (e) => {
+            console.log('Touchstart event:', e);
             if (e.touches.length === 2) {
                 e.preventDefault();
                 app.initialDistance = getTouchDistance(e.touches);
@@ -1261,6 +1287,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { passive: false });
 
         app.canvas.addEventListener('touchmove', (e) => {
+            console.log('Touchmove event:', e);
             if (e.touches.length === 2) {
                 e.preventDefault();
                 const currentDistance = getTouchDistance(e.touches);
@@ -1275,6 +1302,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { passive: false });
 
         app.canvas.addEventListener('touchend', (e) => {
+            console.log('Touchend event:', e);
             if (e.touches.length < 2) {
                 app.painting = false;
                 app.lastX = undefined;
@@ -1301,7 +1329,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         app.recording = false;
                         const saveMP4Button = document.getElementById('saveMP4');
                         if (saveMP4Button) {
-                            saveMP4Button.innerHTML = '<img src="MP4.png" alt="Save MP4 icon">';
+                            saveMP4Button.innerHTML = '<img src="icons/MP4.png" alt="Save MP4 icon">';
                             saveMP4Button.setAttribute('aria-label', 'Save as MP4');
                         }
                     }
@@ -1444,11 +1472,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const toggleFullscreenBtn = document.getElementById('toggleFullscreen');
         const showToolbarBtn = document.getElementById('showToolbarBtn');
-        const toolbar = document.getElementById('toolbar-container');
+        const toolbar = document.getElementById('toolbar');
         const container = document.getElementById('canvas-container');
 
         if (toggleFullscreenBtn) {
-            toggleFullscreenBtn.setAttribute('aria-label', 'Enter fullscreen mode');
             toggleFullscreenBtn.addEventListener('click', () => {
                 try {
                     if (!document.fullscreenElement) {
@@ -1456,12 +1483,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             showNotification('Failed to enter fullscreen.', 'error');
                             console.error('Fullscreen error:', err);
                         });
-                        toggleFullscreenBtn.innerHTML = '<img src="fscrn.png" alt="Exit fullscreen icon">';
+                        toggleFullscreenBtn.innerHTML = '<img src="icons/fscrn.png" alt="Exit fullscreen icon">';
                         toggleFullscreenBtn.setAttribute('aria-label', 'Exit fullscreen mode');
                     } else {
                         document.exitFullscreen();
-                        toggleFullscreenBtn.innerHTML = '<img src="fscrn.png" alt="Fullscreen icon">';
-                        toggleFullscreenBtn.setAttribute('aria-label', 'Enter fullscreen mode');
+                        toggleFullscreenBtn.innerHTML = '<img src="icons/fscrn.png" alt="Fullscreen icon">';
+                        toggleFullscreenBtn.setAttribute('aria-label', 'Toggle fullscreen mode');
                     }
                 } catch (err) {
                     console.error('Toggle fullscreen error:', err);
