@@ -53,7 +53,10 @@ const DrawingApp = {
     ASPECT_RATIO: 16 / 9,
     lastDrawTime: 0,
     defaultColors: ['#1df58d', '#0000FF', '#FF0000', '#FFFF00', '#00FF00', '#FF00FF', '#00FFFF', '#800080', '#FFA500', '#808080'],
-    activeTab: null
+    activeTab: null,
+    audioContext: null,
+    soundEnabled: true,
+    lastSoundTime: 0
 };
 
 // === Section 2: Utility Functions ===
@@ -280,6 +283,54 @@ function createGradientImage(colors) {
     }
 }
 
+function playBrushSound(brush, x, pressure) {
+    const app = DrawingApp;
+    if (!app.soundEnabled || !app.audioContext) return;
+    try {
+        const now = app.audioContext.currentTime;
+        const oscillator = app.audioContext.createOscillator();
+        const gainNode = app.audioContext.createGain();
+
+        let baseFreq, type;
+        switch (brush) {
+            case 'web':
+                baseFreq = 200;
+                type = 'square';
+                break;
+            case 'continuousCircle':
+                baseFreq = 400;
+                type = 'sine';
+                break;
+            case 'watercolor':
+                baseFreq = 600;
+                type = 'triangle';
+                break;
+            case 'curlyWings':
+                baseFreq = 300;
+                type = 'sawtooth';
+                break;
+            default:
+                baseFreq = 400;
+                type = 'sine';
+        }
+
+        const freq = baseFreq * (0.8 + 0.4 * pressure) * (1 + 0.2 * (x / app.canvas.width));
+        oscillator.frequency.setValueAtTime(freq, now);
+        oscillator.type = type;
+
+        gainNode.gain.setValueAtTime(0.1, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(app.audioContext.destination);
+
+        oscillator.start(now);
+        oscillator.stop(now + 0.1);
+    } catch (err) {
+        console.error('Play brush sound error:', err);
+    }
+}
+
 function draw(e) {
     const app = DrawingApp;
     try {
@@ -328,6 +379,10 @@ function draw(e) {
                 const y = app.lastY + dy * point;
                 strokePoints.push({ x, y, time: currentTime, pressure });
                 drawWithSymmetry(x, y, dx, dy, adjustedBrushSize, adjustedCircleSize);
+                if (currentTime - app.lastSoundTime > 100) {
+                    playBrushSound(app.currentBrush, x, pressure);
+                    app.lastSoundTime = currentTime;
+                }
             }
             app.persistentCtx.drawImage(app.offscreenCanvas, 0, 0);
             app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
@@ -634,6 +689,7 @@ function startPosition(e) {
         app.ctx.globalCompositeOperation = 'source-over';
         const pressure = e.pressure !== undefined ? e.pressure : 0.5;
         console.log(`Starting draw at (${app.lastX}, ${app.lastY})`);
+        playBrushSound(app.currentBrush, app.lastX, pressure);
         drawWithSymmetry(app.lastX, app.lastY, 0, 0, app.brushSize * (0.2 + 0.8 * pressure), app.circleSize * (0.2 + 0.8 * pressure));
         app.persistentCtx.drawImage(app.offscreenCanvas, 0, 0);
         app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
@@ -664,7 +720,7 @@ function startPosition(e) {
             }
         });
         app.actions.push({
-            imageData: app.potentialCtx.getImageData(0, 0, app.canvas.width, app.canvas.height),
+            imageData: app.persistentCtx.getImageData(0, 0, app.canvas.width, app.canvas.height),
             strokes: [{ x: app.lastX, y: app.lastY }],
             brush: app.currentBrush,
             size: app.brushSize * (0.2 + 0.8 * pressure),
@@ -828,6 +884,19 @@ document.addEventListener('DOMContentLoaded', () => {
         app.canvas.style.pointerEvents = 'auto';
         app.canvas.style.touchAction = 'none';
         console.log('Canvas initialized successfully:', app.canvas.width, app.canvas.height);
+
+        // Initialize AudioContext after user interaction
+        app.canvas.addEventListener('pointerdown', () => {
+            if (!app.audioContext) {
+                try {
+                    app.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    console.log('AudioContext initialized');
+                } catch (err) {
+                    console.error('AudioContext initialization error:', err);
+                    showNotification('Failed to initialize audio.', 'error');
+                }
+            }
+        }, { once: true });
     } catch (err) {
         showNotification('Failed to initialize canvas.', 'error');
         console.error('Canvas initialization error:', err);
@@ -972,10 +1041,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (input.type === 'checkbox') {
                     input.addEventListener('change', (e) => {
                         func(e.target.checked);
-                        drawBackground(app.persistentCtx);
-                        app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
-                        app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
-                        app.ctx.drawImage(app.persistentCanvas, 0, 0);
+                        if (id === 'soundToggle' && !e.target.checked && app.audioContext) {
+                            app.audioContext.suspend();
+                        } else if (id === 'soundToggle' && e.target.checked && app.audioContext) {
+                            app.audioContext.resume();
+                        }
+                        if (id !== 'soundToggle') {
+                            drawBackground(app.persistentCtx);
+                            app.ctx.setTransform(app.scale, 0, 0, app.scale, 0, 0);
+                            app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
+                            app.ctx.drawImage(app.persistentCanvas, 0, 0);
+                        }
                     });
                 } else {
                     input.addEventListener('change', (e) => {
@@ -1025,6 +1101,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         updateValue('gradientBg', v => app.gradientBg = v);
         updateValue('transparentBg', v => app.transparentBg = v);
+        updateValue('soundToggle', v => app.soundEnabled = v);
 
         function updateColorInputs() {
             try {
@@ -1139,6 +1216,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     app.ctx.clearRect(0, 0, app.canvas.width / app.scale, app.canvas.height / app.scale);
                     app.ctx.drawImage(app.persistentCanvas, 0, 0);
                     showNotification('Background removed.', 'success');
+                    const bgImageUploadInput = document.getElementById('bgImageUpload');
+if (bgImageUploadInput) bgImageUploadInput.value = '';
                 } catch (err) {
                     console.error('Remove background error:', err);
                     showNotification('Failed to remove background.', 'error');
