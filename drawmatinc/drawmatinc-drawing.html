@@ -1,0 +1,557 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta content="yes" name="mobile-web-app-capable">
+    <meta content="yes" name="apple-mobile-web-app-capable">
+    <meta name="description" content="Drawmatinc Brush Stroke Patterns Drawing Tool - Create art with customizable brushes, symmetry, and more.">
+    <title>Drawmatinc - Drawing Tool</title>
+    <link rel="stylesheet" href="dtstyles.css">
+    <link rel="stylesheet" href="dthomepage.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.min.js"></script>
+    <script src="dtjavas.js" defer></script>
+    <style>
+        
+        /* Inline styles for icons (replace with actual paths) */
+         .tab-settings { background: url('home.png') no-repeat center; }
+        .tab-brush { background: url('icons/brushset.png') no-repeat center; }
+        .tab-color { background: url('icons/colorset.png') no-repeat center; }
+        .tab-transform { background: url('icons/trans.png') no-repeat center; }
+        .tab-background { background: url('icons/bg.png') no-repeat center; }
+        .tab-settings { background: url('settings-icon.png') no-repeat center; }
+
+        h1, h2, h3 {
+            color: #27362f;
+        }
+        h1 {
+            font-size: 2.2em;
+            border-bottom: 2px solid #1df58d;
+            padding-bottom: 10px;
+        }
+        h2 {
+            font-size: 1.8em;
+            margin-top: 20px;
+        }
+        h3 {
+            font-size: 1.4em;
+            margin-top: 15px;
+        }
+        p {
+            margin: 10px 0;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        strong {
+            color: hwb(204 1% 97%);
+        }
+        em {
+            font-style: italic;
+        }
+        .tip {
+            background-color: hsl(120, 6%, 10%);
+            border-left: 4px solid #1df58d;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .tip::before {
+            content: "Tip: ";
+            font-weight: bold;
+            color: #27362f;
+        }
+        a {
+            color: #1df58d;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .article-section {
+            max-width: 70%;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background:repeating-radial-gradient(circle, #ff6b6b, #368c87, #45b7d1, #96c93d);
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+      
+        @media (max-width: 600px) {
+            body {
+                padding: 15px;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+            h2 {
+                font-size: 1.5em;
+            }
+            h3 {
+                font-size: 1.2em;
+            }
+            .article-section {
+                padding: 1rem;
+                margin: 1rem;
+            }
+            #actions-row button {
+                padding: 5px 5px;
+                min-width: 35px;
+            }
+            #actions-row button i {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+   <div class="container">
+        <div id="toolbar" role="region" aria-label="Drawing tool settings">
+            <div id="tab-bar" role="tablist" aria-label="Settings tabs">
+                <div class="tab"  role="tab" aria-selected="true" aria-controls="brush-tab" data-tooltip="Brush Settings" aria-label="Open brush settings">
+                    <a href="index.html" aria-label="View privacy policy"><img src="icons/home.png" alt="Brush icon"></a>
+                </div>
+                <div class="tab active" data-tab="brush" role="tab" aria-selected="true" aria-controls="brush-tab" data-tooltip="Brush Settings" aria-label="Open brush settings">
+                    <img src="icons/brushset.png" alt="Brush icon">
+                </div>
+                <div class="tab" data-tab="color" role="tab" aria-selected="false" aria-controls="color-tab" data-tooltip="Color Settings" aria-label="Open color settings">
+                    <img src="icons/colorset.png" alt="Color palette icon">
+                </div>
+                <div class="tab" data-tab="transform" role="tab" aria-selected="false" aria-controls="transform-tab" data-tooltip="Transformations" aria-label="Open transformation settings">
+                    <img src="icons/trans.png" alt="Transform icon">
+                </div>
+                <div class="tab" data-tab="background" role="tab" aria-selected="false" aria-controls="background-tab" data-tooltip="Background Settings" aria-label="Open background settings">
+                    <img src="icons/bg.png" alt="Background icon">
+                </div>
+                <div class="tab" data-tab="settings" role="tab" aria-selected="false" aria-controls="settings-tab" data-tooltip="Settings" aria-label="Open general settings">
+                    <img src="icons/genset.png" alt="Settings icon">
+                </div>
+            </div>
+            <div id="brush-tab" class="tab-content active" role="tabpanel" aria-labelledby="brush-tab">
+                <div class="dropdown-container">
+                    <label for="brushSelect" aria-label="Select brush type">Brush Type</label>
+                    <select id="brushSelect" aria-label="Select brush type">
+                        <option value="web">Wooly</option>
+                        <option value="continuousCircle" selected>Straws</option>
+                        <option value="watercolor">Watercolor</option>
+                        <option value="curlyWings">Curly Wings</option>
+                    </select>
+                </div>
+                <div id="webSettings" class="dropdown-container" style="display: none;">
+                    <label for="webDensity" aria-label="Adjust web brush density">Density</label>
+                    <input type="range" id="webDensity" min="1" max="10" value="3" aria-label="Web brush density">
+                    <span id="webDensityValue">3</span>
+                    <label for="webSpread" aria-label="Adjust web brush spread">Spread</label>
+                    <input type="range" id="webSpread" min="0" max="1" step="0.1" value="0.5" aria-label="Web brush spread">
+                    <span id="webSpreadValue">0.5</span>
+                    <label for="webWiggle" aria-label="Adjust web brush wiggle">Wiggle</label>
+                    <input type="range" id="webWiggle" min="0" max="1" step="0.1" value="0.1" aria-label="Web brush wiggle">
+                    <span id="webWiggleValue">0.1</span>
+                </div>
+                <div id="continuousCircleSettings" class="dropdown-container">
+                    <label for="circleSize" aria-label="Adjust circle brush size">Size</label>
+                    <input type="range" id="circleSize" min="1" max="50" value="20" aria-label="Circle brush size">
+                    <span id="circleSizeValue">20</span>
+                    <label for="borderWidth" aria-label="Adjust circle brush border width">Border</label>
+                    <input type="range" id="borderWidth" min="0" max="5" value="1" aria-label="Circle brush border width">
+                    <span id="borderWidthValue">1</span>
+                </div>
+                <div id="watercolorSettings" class="dropdown-container" style="display: none;">
+                    <label for="watercolorSpread" aria-label="Adjust watercolor brush spread">Spread</label>
+                    <input type="range" id="watercolorSpread" min="0" max="1" step="0.1" value="0.5" aria-label="Watercolor brush spread">
+                    <span id="watercolorSpreadValue">0.5</span>
+                    <label for="watercolorBleed" aria-label="Adjust watercolor brush bleed">Bleed</label>
+                    <input type="range" id="watercolorBleed" min="0" max="1" step="0.1" value="0.2" aria-label="Watercolor brush bleed">
+                    <span id="watercolorBleedValue">0.2</span>
+                </div>
+                <div id="curlyWingsSettings" class="dropdown-container" style="display: none;">
+                    <label for="wingSize" aria-label="Adjust curly wings brush size">Size</label>
+                    <input type="range" id="wingSize" min="10" max="50" value="30" aria-label="Curly wings brush size">
+                    <span id="wingSizeValue">30</span>
+                    <label for="curlIntensity" aria-label="Adjust curly wings brush curl intensity">Curl</label>
+                    <input type="range" id="curlIntensity" min="0" max="1" step="0.1" value="0.5" aria-label="Curly wings brush curl intensity">
+                    <span id="curlIntensityValue">0.5</span>
+                    <label for="wingOpacity" aria-label="Adjust curly wings brush opacity">Opacity</label>
+                    <input type="range" id="wingOpacity" min="0" max="1" step="0.1" value="0.3" aria-label="Curly wings brush opacity">
+                    <span id="wingOpacityValue">0.3</span>
+                </div>
+                <div class="dropdown-container">
+                    <label for="brushSize" aria-label="Adjust overall brush size">Brush Size</label>
+                    <input type="range" id="brushSize" min="1" max="100" value="10" aria-label="Overall brush size">
+                    <span id="brushSizeValue">10</span>
+                </div>
+                <div class="dropdown-container">
+                    <label for="smoothness" aria-label="Adjust brush smoothness">Smoothness</label>
+                    <input type="range" id="smoothness" min="1" max="100" value="50" aria-label="Brush smoothness">
+                    <span id="smoothnessValue">50</span>
+                </div>
+                <div class="dropdown-container">
+                    <label for="opacity" aria-label="Adjust brush opacity">Opacity</label>
+                    <input type="range" id="opacity" min="0" max="1" step="0.1" value="0.1" aria-label="Brush opacity">
+                    <span id="opacityValue">0.1</span>
+                </div>
+            </div>
+            <div id="color-tab" class="tab-content" role="tabpanel" aria-labelledby="color-tab">
+                <div class="dropdown-container">
+                    <label for="colorCount" aria-label="Select number of colors">Colors</label>
+                    <select id="colorCount" aria-label="Select number of colors">
+                        <option value="1" >1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5" >5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                        <option value="9">9</option>
+                        <option value="10" selected>10</option>
+                    </select>
+                </div>
+                <div id="colorInputs" class="dropdown-container"></div>
+                <div class="dropdown-container">
+                    <button id="randomizeAllColors" aria-label="Randomize all colors">Change Colors</button>
+                </div>
+                <div class="dropdown-container">
+                    <label for="colorSamplingMethod" aria-label="Select color sampling method">Sampling</label>
+                    <select id="colorSamplingMethod" aria-label="Select color sampling method">
+                        <option value="random">Random</option>
+                        <option value="spatial" selected>Spatial</option>
+                        <option value="horizontal">Horizontal</option>
+                        <option value="vertical">Vertical</option>
+                        <option value="radial">Radial</option>
+                    </select>
+                </div>
+                <div class="dropdown-container">
+                    <label for="colorImageUpload" aria-label="Upload image for color sampling">Upload Color Image</label>
+                    <input type="file" id="colorImageUpload" accept="image/*" aria-label="Upload image for color sampling">
+                </div>
+                <div class="dropdown-container">
+                    <button id="removeColorImage" aria-label="Remove uploaded color image">Remove</button>
+                </div>
+            </div>
+            <div id="transform-tab" class="tab-content" role="tabpanel" aria-labelledby="transform-tab">
+                <div class="dropdown-container">
+                    <label for="symmetrySelect" aria-label="Select symmetry axes">Symmetry</label>
+                    <select id="symmetrySelect" aria-label="Select symmetry axes">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4" selected>4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                    </select>
+                </div>
+                <div class="dropdown-container">
+                    <label for="mirrorSelect" aria-label="Select mirror mode">Mirror</label>
+                    <select id="mirrorSelect" aria-label="Select mirror mode">
+                        <option value="none" >None</option>
+                        <option value="horizontal">Horizontal</option>
+                        <option value="vertical" selected>Vertical</option>
+                    </select>
+                </div>
+                <div class="dropdown-container">
+                    <label for="spiralSelect" aria-label="Select spiral mode">Spiral</label>
+                    <select id="spiralSelect" aria-label="Select spiral mode">
+                        <option value="off" selected>Off</option>
+                        <option value="on">On</option>
+                    </select>
+                </div>
+                <div id="spiralSettings" class="dropdown-container" style="display: none;">
+                    <label for="spiralSteps" aria-label="Adjust spiral steps">Steps</label>
+                    <input type="range" id="spiralSteps" min="1" max="20" value="10" aria-label="Spiral steps">
+                    <span id="spiralStepsValue">10</span>
+                </div>
+            </div>
+            <div id="background-tab" class="tab-content" role="tabpanel" aria-labelledby="background-tab">
+                <div class="dropdown-container">
+                    <label for="bgColor" aria-label="Select first background color">Color 1</label>
+                    <input type="color" id="bgColor" value="#000000" aria-label="First background color">
+                </div>
+                <div class="dropdown-container">
+                    <label for="bgColor2" aria-label="Select second background color">Color 2</label>
+                    <input type="color" id="bgColor2" value="#1a252f" aria-label="Second background color">
+                </div>
+                <div class="dropdown-container">
+                    <label for="gradientBg" aria-label="Enable gradient background">Gradient</label>
+                    <input type="checkbox" id="gradientBg" aria-label="Enable gradient background">
+                </div>
+                <div class="dropdown-container">
+                    <label for="transparentBg" aria-label="Enable transparent background">Transparent</label>
+                    <input type="checkbox" id="transparentBg" aria-label="Enable transparent background">
+                </div>
+                <div class="dropdown-container">
+                    <label for="bgImageUpload" aria-label="Upload background image">Upload Background</label>
+                    <input type="file" id="bgImageUpload" accept="image/*" aria-label="Upload background image">
+                </div>
+                <button id="removeBg" class="rbg">Remove Background</button>
+            </div>
+            <div id="settings-tab" class="tab-content" role="tabpanel" aria-labelledby="settings-tab">
+                <div class="dropdown-container">
+                    <label for="performanceMode" aria-label="Enable low performance mode">Low Performance Mode</label>
+                    <input type="checkbox" id="performanceMode" aria-label="Enable low performance mode">
+                </div>
+                <div class="dropdown-container">
+                    <label for="canvasResolution" aria-label="Select canvas resolution">Canvas Resolution</label>
+                    <select id="canvasResolution" aria-label="Select canvas resolution">
+                        <option value="hd">HD</option>
+                        <option value="fullhd" selected>Full HD</option>
+                        <option value="4k">4K</option>
+                    </select>
+                </div>
+                <div class="dropdown-container">
+                    <label for="aspectRatio" aria-label="Select aspect ratio">Aspect Ratio</label>
+                    <select id="aspectRatio" aria-label="Select aspect ratio">
+                        <option value="16:9" selected>16:9</option>
+                        <option value="4:3">4:3</option>
+                        <option value="3:4">3:4</option>
+                        <option value="9:16">9:16</option>
+                    </select>
+                </div>
+                <div class="dropdown-container">
+                    <label for="videoResolution" aria-label="Select video resolution">Video Resolution</label>
+                    <select id="videoResolution" aria-label="Select video resolution">
+                        <option value="720p">720p</option>
+                        <option value="1080p" selected>1080p</option>
+                    </select>
+                     <label for="soundToggle">Enable Sound Effects</label>
+    <input type="checkbox" id="soundToggle" checked>
+                </div>
+            </div>
+               <div id="actions-row" role="toolbar" aria-label="Drawing actions">
+            <button id="clear" data-tooltip="Clear Canvas" aria-label="Clear canvas">
+                <img src="icons/clear.png" alt="Clear icon">
+            </button>
+            <button id="undo" data-tooltip="Undo" aria-label="Undo last action">
+                <img src="icons/undo.png" alt="Undo icon">
+            </button>
+            <button id="redo" data-tooltip="Redo" aria-label="Redo last action">
+                <img src="icons/redo.png" alt="Redo icon">
+            </button>
+            <button id="undoAll" data-tooltip="Undo All" aria-label="Undo all actions">
+                <img src="icons/undoall.png" alt="Undo all icon">
+            </button>
+            <button id="redoAll" data-tooltip="Redo All" aria-label="Redo all actions">
+                <img src="icons/redoall.png" alt="Redo all icon">
+            </button>
+            <button id="save" data-tooltip="Save PNG" aria-label="Save as PNG">
+                <img src="icons/savepng.png" alt="Save PNG icon">
+            </button>
+            <button id="saveMP4" data-tooltip="Save MP4" aria-label="Save as MP4">
+                <img src="icons/MP4.png" alt="Save MP4 icon">
+            <button id="saveGIF" data-tooltip="Save GIF" aria-label="Save as GIF">
+            </button>
+           
+            <button id="toggleFullscreen" data-tooltip="Toggle Fullscreen" aria-label="Toggle fullscreen mode">
+                <img src="icons/fscrn.png" alt="Fullscreen icon">
+            </button>
+        </div>
+        </div>
+     
+        <div id="canvas-container">
+            <canvas id="canvas" aria-label="Drawing canvas"></canvas>
+            <button id="showToolbarBtn" aria-label="Show toolbar">Show Toolbar</button>
+        </div>
+        <div id="welcome-screen">
+            <div class="welcome-content">
+                <h1>Welcome</h1>
+                <p class="welcome-text">Step into a world of creativity where every stroke tells a story. Unleash your imagination with the Brush Stroke Patterns Drawing Tool!</p>
+                <p class="quote" id="quote-text"></p>
+                <button id="close-welcome" aria-label="Start creating">Start Creating</button>
+            </div>
+        </div>
+        <div id="orientation-overlay">
+            <p>For the best experience, please switch to desktop mode.</p>
+            <button id="dismiss-overlay" aria-label="Continue in portrait mode">Continue</button>
+        </div>
+        </div>
+        <section class="article-section">
+            <h1>Addressing Performance Issues in Drawmatinc Drawing Tool Due to Hardware Limitations</h1>
+            <p>The Drawmatinc Drawing Tool is a powerful web-based application that enables artists to create intricate, symmetrical designs with customizable brushes and high-speed video recording. However, its advanced features, such as real-time symmetry, spiral effects, and high-resolution canvases, can strain hardware, especially on older or less powerful devices. This article explores potential performance issues users may face due to hardware limitations and provides practical solutions to ensure a smooth drawing experience.</p>
+            <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9339565698669813"
+            crossorigin="anonymous"></script>
+       <ins class="adsbygoogle"
+            style="display:block; text-align:center;"
+            data-ad-layout="in-article"
+            data-ad-format="fluid"
+            data-ad-client="ca-pub-9339565698669813"
+            data-ad-slot="9815077548"></ins>
+       <script>
+            (adsbygoogle = window.adsbygoogle || []).push({});
+       </script>
+            <h2>Why Hardware Limitations Affect Drawmatinc</h2>
+            <p>Drawmatinc leverages the HTML5 Canvas API to render complex drawings in real time, which requires significant computational resources. Key features like radial symmetry, mirror modes, and video recording demand:</p>
+            <ul>
+                <li><strong>CPU Power</strong>: For calculating symmetry transformations and rendering brush strokes.</li>
+                <li><strong>GPU Acceleration</strong>: For smooth canvas rendering, especially at high resolutions.</li>
+                <li><strong>Memory (RAM)</strong>: To store canvas snapshots, stroke data, and video streams.</li>
+                <li><strong>Browser Performance</strong>: Modern browsers with efficient JavaScript engines and WebGL support are essential.</li>
+            </ul>
+            <p>Older devices, low-end laptops, or budget smartphones may struggle to keep up, leading to performance issues such as lag, stuttering, or browser crashes. Understanding these challenges is the first step to optimizing your experience.</p>
+
+            <h2>Common Performance Issues and Their Causes</h2>
+            <p>Users may encounter the following performance issues when using Drawmatinc on limited hardware:</p>
+
+            <h3>1. Drawing Lag or Stuttering</h3>
+            <p><strong>Symptoms</strong>: Strokes appear delayed, the canvas updates slowly, or the drawing feels unresponsive.</p>
+            <p><strong>Causes</strong>:</p>
+            <ul>
+                <li><strong>High Symmetry Levels</strong>: Using 6 or 8 axes of radial symmetry increases the number of calculations per stroke, taxing the CPU.</li>
+                <li><strong>Spiral Mode</strong>: The spiral effect multiplies stroke transformations, further straining processing power.</li>
+                <li><strong>Complex Brushes</strong>: Brushes like Watercolor or Wooly involve multiple draw operations, slowing down rendering.</li>
+                <li><strong>High Canvas Resolution</strong>: Resolutions like Full HD (1920x1080) or 4K (3840x2160) require more GPU resources.</li>
+            </ul>
+
+            <h3>2. Slow Video Recording</h3>
+            <p><strong>Symptoms</strong>: Video recording takes too long, produces choppy output, or fails to complete.</p>
+            <p><strong>Causes</strong>:</p>
+            <ul>
+                <li><strong>Large Number of Strokes</strong>: Recording complex drawings with many strokes requires rendering each frame, overwhelming the CPU.</li>
+                <li><strong>High Video Resolution</strong>: Recording at 1080p or higher increases memory and processing demands.</li>
+                <li><strong>Limited RAM</strong>: Storing video chunks and canvas snapshots can exhaust available memory, causing slowdowns or crashes.</li>
+            </ul>
+
+            <h3>3. Browser Crashes or Freezes</h3>
+            <p><strong>Symptoms</strong>: The browser becomes unresponsive, crashes, or displays memory error messages.</p>
+            <p><strong>Causes</strong>:</p>
+            <ul>
+                <li><strong>Memory Overload</strong>: Storing large canvas snapshots (especially at 4K) or extensive stroke data can exceed RAM capacity.</li>
+                <li><strong>Outdated Browser</strong>: Older browsers may lack efficient canvas rendering or MediaRecorder support, leading to instability.</li>
+                <li><strong>Weak GPU</strong>: Devices without hardware-accelerated canvas rendering struggle with real-time updates.</li>
+            </ul>
+
+            <h3>4. Slow UI Response</h3>
+            <p><strong>Symptoms</strong>: Toolbar buttons, sliders, or tabs respond slowly or fail to update.</p>
+            <p><strong>Causes</strong>:</p>
+            <ul>
+                <li><strong>High CPU Usage</strong>: Intensive drawing operations leave little processing power for UI updates.</li>
+                <li><strong>Mobile Devices</strong>: Budget smartphones or tablets may struggle with touch events and canvas rendering simultaneously.</li>
+            </ul>
+
+            <h2>Solutions to Mitigate Performance Issues</h2>
+            <p>Drawmatinc includes features to optimize performance, and users can take additional steps to adapt to their hardware limitations. Here are actionable solutions:</p>
+
+            <h3>1. Enable Low Performance Mode</h3>
+            <p>Drawmatinc’s Low Performance Mode, accessible in the toolbar, is designed for less powerful devices. It:</p>
+            <ul>
+                <li>Limits radial symmetry to 4 axes, reducing CPU calculations.</li>
+                <li>Disables Spiral Mode, which is computationally intensive.</li>
+                <li>Optimizes brush rendering for simpler operations.</li>
+            </ul>
+            <div class="tip">Enable Low Performance Mode on older laptops or budget smartphones to ensure smooth drawing, especially when using complex brushes.</div>
+
+            <h3>2. Reduce Canvas and Video Resolution</h3>
+            <p>High resolutions like 4K or Full HD demand significant resources. Lower the canvas resolution to HD (1280x720) in the Canvas Resolution dropdown to reduce GPU and memory usage. Similarly, set the video resolution to 720p in the Video Resolution dropdown for faster recording.</p>
+            <div class="tip">If you need high-quality output, draw at 720p and upscale the final image or video using external software to save processing power.</div>
+
+            <h3>3. Simplify Symmetry and Brush Settings</h3>
+            <p>Complex settings exacerbate performance issues. Optimize your workflow by:</p>
+            <ul>
+                <li><strong>Lowering Symmetry Axes</strong>: Use 2 or 4 axes instead of 6 or 8 for simpler patterns.</li>
+                <li><strong>Disabling Spiral Mode</strong>: Turn off spirals to reduce transformation calculations.</li>
+                <li><strong>Using Simpler Brushes</strong>: Opt for Straws over Watercolor or Wooly for faster rendering.</li>
+                <li><strong>Reducing Brush Size and Opacity</strong>: Smaller brushes and lower opacity require fewer draw operations.</li>
+            </ul>
+            <div class="tip">Start with minimal settings (e.g., 2-axis symmetry, Straws brush) to test your device’s capabilities, then gradually increase complexity.</div>
+
+            <h3>4. Optimize Video Recording</h3>
+            <p>Drawmatinc’s optimized recording system uses canvas snapshots to achieve up to 10x faster video generation. To further improve recording performance:</p>
+            <ul>
+                <li><strong>Limit Stroke Count</strong>: Simplify drawings to fewer strokes before recording.</li>
+                <li><strong>Use 720p Resolution</strong>: Lower video resolution reduces memory and processing demands.</li>
+                <li><strong>Close Other Applications</strong>: Free up CPU and RAM by closing unnecessary programs or browser tabs.</li>
+            </ul>
+            <div class="tip">If recording still fails, check the browser console (F12) for errors related to MediaRecorder or canvas streaming, and try a different browser like Chrome or Firefox.</div>
+
+            <h3>5. Update Browser and Drivers</h3>
+            <p>Ensure you’re using a modern browser (e.g., Chrome, Firefox, Edge) with up-to-date WebGL and canvas support. Update your graphics drivers to enable hardware acceleration, which significantly improves canvas rendering. On mobile devices, use the latest version of Chrome or Safari for optimal performance.</p>
+            <div class="tip">Clear your browser cache to free up memory and improve responsiveness, especially on older devices.</div>
+
+            <h3>6. Monitor Hardware Resources</h3>
+            <p>Use your device’s task manager (Windows) or activity monitor (macOS) to check CPU, GPU, and RAM usage while using Drawmatinc. If usage approaches 100%:</p>
+            <ul>
+                <li>Close background applications to free resources.</li>
+                <li>Reduce canvas size or disable complex features like spirals.</li>
+                <li>Consider upgrading RAM or using a more powerful device for intensive tasks.</li>
+            </ul>
+
+            <h3>7. Test on Alternative Devices</h3>
+            <p>If performance issues persist, try Drawmatinc on a different device, such as a newer laptop or tablet. This can help determine if the issue is hardware-specific. For example, a device with at least 4GB RAM, a dual-core CPU, and a modern GPU should handle most Drawmatinc features smoothly.</p>
+
+            <h2>Recommended Hardware for Optimal Performance</h2>
+            <p>To avoid performance issues, aim for the following hardware specifications:</p>
+            <ul>
+                <li><strong>CPU</strong>: Quad-core processor (e.g., Intel i5 or equivalent) for smooth symmetry calculations.</li>
+                <li><strong>RAM</strong>: 8GB or more to handle canvas snapshots and video recording.</li>
+                <li><strong>GPU</strong>: Integrated or dedicated GPU with WebGL support for hardware-accelerated rendering.</li>
+                <li><strong>Browser</strong>: Latest version of Chrome, Firefox, or Edge for efficient JavaScript and canvas performance.</li>
+                <li><strong>Storage</strong>: SSD for faster browser caching and video saving (optional but beneficial).</li>
+            </ul>
+            <p>For mobile devices, mid-range or flagship smartphones/tablets (e.g., 4GB RAM, quad-core CPU) released within the last 3-4 years should perform adequately.</p>
+
+            <h2>Troubleshooting Persistent Issues</h2>
+            <p>If you’ve applied the above solutions and still face issues, try these steps:</p>
+            <ul>
+                <li><strong>Check Console Errors</strong>: Open the browser’s Developer Tools (F12), go to the Console tab, and look for errors related to canvas, MediaRecorder, or memory. Share these with Drawmatinc’s support team.</li>
+                <li><strong>Test Minimal Settings</strong>: Reset Drawmatinc to default settings (e.g., 720p resolution, 2-axis symmetry, Straws brush) to isolate the issue.</li>
+                <li><strong>Contact Support</strong>: Report persistent crashes or slowdowns, providing details about your device, browser, and settings.</li>
+            </ul>
+            <div class="tip">If Drawmatinc crashes frequently, reduce the canvas resolution to 720p and limit drawings to fewer than 50 strokes until you can upgrade your hardware.</div>
+
+            <h2>Conclusion</h2>
+            <p>The Drawmatinc Drawing Tool offers a rich set of features for creating stunning, symmetrical artwork, but its performance can be affected by hardware limitations. By enabling Low Performance Mode, reducing resolutions, simplifying settings, and optimizing your browser and device, you can mitigate most issues and enjoy a smooth drawing experience. For the best results, use a modern device with adequate CPU, GPU, and RAM, and keep your browser updated.</p>
+            <p>Don’t let hardware constraints hold back your creativity. With these strategies, you can harness Drawmatinc’s full potential to create beautiful designs, record your process, and share your art with the world.</p>
+            <p><em>Ready to draw? Optimize your settings and start creating!</em></p>
+        </section>
+    </div>
+    <footer>
+        <p>© 2025 Drawmatinc. All rights reserved. <a href="privacy.html">Privacy Policy</a> | <a href="contact.html">Contact Us</a></p>
+    </footer>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93b6e9deba09bf6b',t:'MTc0NjUxODEwOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+</body>
+</html>
