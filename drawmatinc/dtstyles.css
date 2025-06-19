@@ -158,8 +158,8 @@ body, html {
     width: 200px;
 }
 #actions-row button {
-    min-width: 40px;
-    height: 40px;
+    min-width: 80px;
+    height: 80px;
     padding: 1px;
     display: flex;
     align-items: center;
@@ -167,8 +167,8 @@ body, html {
 }
 
 #actions-row button img {
-    width: 24px;
-    height: 24px;
+    width: 44px;
+    height: 44px;
 }
 
 #canvas-container {
