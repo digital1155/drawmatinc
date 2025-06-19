@@ -274,16 +274,16 @@ label {
         justify-content: space-around;
     }
     .tab {
-        width: 36px;
+        width: 66px;
         height: 36px;
     }
     .tab img {
-        width: 30px;
+        width: 50px;
         height: 30px;
     }
     #actions-row {
         gap: 6px;
-        padding: 6px;
+        padding: 2px;
         width: 100%;
         justify-content: space-around;
     }
@@ -291,11 +291,11 @@ label {
         top: 50px;
     }
     #actions-row button {
-        min-width: 36px;
+        min-width: 66px;
         height: 36px;
     }
     #actions-row button img {
-        width: 20px;
+        width: 40px;
         height: 20px;
     }
 }
