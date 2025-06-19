@@ -51,7 +51,7 @@ body, html {
     cursor: pointer;
     border-radius: 15px;
     transition: all 0.3s ease;
-    width: 40px;
+    width: 80px;
     height: 40px;
     display: flex;
     align-items: center;
@@ -59,7 +59,7 @@ body, html {
 }
 
 .tab img {
-    width: 40px;
+    width: 800px;
     height: 40px;
     border-radius: 10px;
 }
@@ -158,7 +158,7 @@ body, html {
     width: 200px;
 }
 #actions-row button {
-    min-width: 40px;
+    min-width: 80px;
     height: 40px;
     padding: 1px;
     display: flex;
