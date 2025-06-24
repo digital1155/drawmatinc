@@ -1562,11 +1562,11 @@ if (bgImageUploadInput) bgImageUploadInput.value = '';
                             showNotification('Failed to enter fullscreen.', 'error');
                             console.error('Fullscreen error:', err);
                         });
-                        toggleFullscreenBtn.innerHTML = '<img src="icons/fscrn.png" alt="Exit fullscreen icon">';
+                        toggleFullscreenBtn.innerHTML = '<img src="icons/fscrn1.png" alt="Exit fullscreen icon">';
                         toggleFullscreenBtn.setAttribute('aria-label', 'Exit fullscreen mode');
                     } else {
                         document.exitFullscreen();
-                        toggleFullscreenBtn.innerHTML = '<img src="icons/fscrn.png" alt="Fullscreen icon">';
+                        toggleFullscreenBtn.innerHTML = '<img src="icons/fscrn1.png" alt="Fullscreen icon">';
                         toggleFullscreenBtn.setAttribute('aria-label', 'Toggle fullscreen mode');
                     }
                 } catch (err) {
