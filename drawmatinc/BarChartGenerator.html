@@ -9,7 +9,6 @@
     <script src="https://code.highcharts.com/modules/cylinder.js"></script>
     <script src="https://code.highcharts.com/modules/exporting.js"></script>
     <script src="https://code.highcharts.com/modules/offline-exporting.js"></script>
-    <script src="barchart.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -203,6 +202,65 @@
         .view-only #status {
             display: none;
         }
+        /* Tutorial Modal Styles */
+        #tutorial-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            padding-top: 60px;
+        }
+        #tutorial-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 800px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            overflow-y: auto;
+            max-height: 80vh;
+        }
+        #close-tutorial {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        #close-tutorial:hover,
+        #close-tutorial:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        #tutorial-content code {
+            background-color: #f4f4f4;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        #tutorial-content pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        #tutorial-content ul {
+            list-style-type: disc;
+            margin-left: 20px;
+        }
+        #tutorial-content .note {
+            background-color: #e7f3fe;
+            border-left: 6px solid #2196F3;
+            padding: 10px;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
@@ -292,7 +350,123 @@
         <button id="reset">Reset</button>
         <button id="generate-share">Generate Share & Embed</button>
         <button id="generate-summary">Generate Summary</button>
+        <button id="show-tutorial">Tutorial</button>
     </footer>
 
+    <!-- Tutorial Modal -->
+    <div id="tutorial-modal">
+        <div id="tutorial-content">
+            <span id="close-tutorial">&times;</span>
+            <h1>Tutorial: Using the BarChart Generator WebApp</h1>
+            <p>Welcome to the BarChart Generator! This webapp allows you to create interactive bar charts, customize them in 2D or 3D (with cylindrical bars), share/embed them, export as images, and generate analytical summaries. It's built with HTML, CSS, JavaScript, and Highcharts library. This tutorial will guide you step-by-step on how to use it.</p>
+
+            <h2>1. Getting Started</h2>
+            <p>Open the webapp in your browser by loading the HTML file. The interface is divided into:</p>
+            <ul>
+                <li><strong>Header</strong>: App title and description.</li>
+                <li><strong>Input Panel (Left)</strong>: For data entry and customization.</li>
+                <li><strong>Chart Preview (Right)</strong>: Displays the generated chart and summary.</li>
+                <li><strong>Footer</strong>: Buttons for export, reset, share, and summary generation.</li>
+            </ul>
+            <p>On load, a default chart with sample data (Apples, Oranges, Bananas) is displayed.</p>
+            <div class="note">
+                <strong>Note:</strong> The app is client-side only—no server needed. Host it on GitHub Pages or Firebase for sharing.
+            </div>
+
+            <h2>2. Entering Data</h2>
+            <p>In the <strong>Data Input</strong> section:</p>
+            <ul>
+                <li>The table has columns: <strong>Label</strong> (category name), <strong>Value</strong> (numeric value), <strong>Color</strong> (hex color picker).</li>
+                <li>Click <strong>Add Row</strong> to add new bars.</li>
+                <li>Edit fields directly in the table.</li>
+                <li>Click <strong>Remove</strong> to delete a row (at least one row required).</li>
+            </ul>
+            <p>Example: For a sales chart, enter labels like "Q1", "Q2"; values like 100, 150; colors like #ff0000, #00ff00.</p>
+
+            <h2>3. Customizing the Chart</h2>
+            <p>In the <strong>Customization</strong> section:</p>
+            <ul>
+                <li><strong>X-Axis Title</strong>: Label for categories (e.g., "Months").</li>
+                <li><strong>Y-Axis Title</strong>: Label for values (e.g., "Sales").</li>
+                <li><strong>Orientation</strong>: Vertical or Horizontal (applies to 2D only).</li>
+                <li><strong>Show Gridlines</strong>: Toggle grid on axes.</li>
+                <li><strong>Enable 3D</strong>: Turns bars into cylinders; drag to rotate.</li>
+                <li><strong>Background Color</strong>: Pick a color for the chart background.</li>
+                <li><strong>Background Opacity</strong>: Slider (0-1) for transparency.</li>
+                <li><strong>Bar Opacity</strong>: Slider (0-1) for bar transparency.</li>
+            </ul>
+            <p>Click <strong>Generate Chart</strong> to update the preview.</p>
+
+            <h2>4. Generating and Interacting with the Chart</h2>
+            <p>After input and customization:</p>
+            <ul>
+                <li>The chart appears in the right panel.</li>
+                <li>Hover over bars for tooltips with values.</li>
+                <li>In 3D mode, click and drag to rotate the view.</li>
+            </ul>
+
+            <h2>5. Sharing and Embedding</h2>
+            <p>Click <strong>Generate Share & Embed</strong> in the footer:</p>
+            <ul>
+                <li><strong>Website Home Link</strong>: Link to the app's main page; copy with button.</li>
+                <li><strong>Shareable Link</strong>: URL with encoded chart data; opens in view-only mode (chart only, no UI).</li>
+                <li><strong>Embed Code</strong>: iframe code to embed the chart on other sites.</li>
+            </ul>
+            <p>Paste the embed code into your website or blog for interactive display.</p>
+
+            <h2>6. Exporting the Chart</h2>
+            <p>Click <strong>Export as Image</strong> to download the chart as PNG. The exported image includes the website name in the corner as a watermark.</p>
+
+            <h2>7. Generating Analytical Summary</h2>
+            <p>Click <strong>Generate Summary</strong>:</p>
+            <ul>
+                <li>A summary appears below the chart with stats: highest/lowest values, total, average, trend, percentage distribution, and pairwise percentage comparisons.</li>
+                <li>Click <strong>Copy Summary</strong> to copy the text.</li>
+                <li>The summary section has a fixed height with scroll if content is long, preventing layout shifts.</li>
+            </ul>
+            <p>Example summary output:</p>
+            <pre>Analytical Summary of the Chart:
+
+This chart displays 3 fruits with corresponding quantity.
+Highest value: 40 (Oranges)
+Lowest value: 25 (Apples)
+Total quantity: 95
+Average quantity: 31.67
+The data shows an overall increasing trend.
+
+Percentage Distribution:
+Apples: 26.32%
+Oranges: 42.11%
+Bananas: 31.58%
+
+Key Percentage Comparisons:
+Oranges is 60.00% higher than Apples.
+Oranges is 33.33% higher than Bananas.
+Bananas is 20.00% higher than Apples.</pre>
+
+            <h2>8. Resetting the App</h2>
+            <p>Click <strong>Reset</strong> to revert to default data and settings.</p>
+
+            <h2>9. View-Only Mode</h2>
+            <p>When opening a shareable link:</p>
+            <ul>
+                <li>Only the chart is shown (full-screen, no input panel or footer).</li>
+                <li>Interactivity (hover, rotation) remains.</li>
+            </ul>
+
+            <h2>10. Tips and Troubleshooting</h2>
+            <ul>
+                <li>Ensure values are numbers; labels can't be empty.</li>
+                <li>For large datasets, the table and summary are scrollable.</li>
+                <li>If 3D rotation doesn't work, check browser compatibility (modern browsers supported).</li>
+                <li>Hosting: Deploy on static hosts like GitHub Pages for public sharing.</li>
+                <li>Customization limits: Opacity 0 makes elements invisible; use wisely.</li>
+            </ul>
+
+            <p>This concludes the tutorial. Start creating your charts now!</p>
+        </div>
+    </div>
+
+   
 </body>
 </html>
