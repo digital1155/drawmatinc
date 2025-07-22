@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drawmatinc Login Test Page</title>
+    <link rel="stylesheet" href="dthomepage.css"> <!-- Reuse homepage CSS for consistency -->
+    <!-- Firebase SDKs (modular v9+) -->
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js"></script>
+</head>
+<body>
+    <!-- Reused Common Header from homepage (adapted from index.html) -->
+    <header>
+        <nav>
+            <div class="logo">Drawmatinc</div>
+            <button class="menu-toggle"><span class="hamburger"></span></button>
+            <ul class="nav-menu">
+                <li><a href="#">Home</a></li>
+                <!-- Add other links as needed; for test, keep simple -->
+                <li><button id="login-btn" aria-label="Login to test authentication">Login</button></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Main Content: Login Test Area -->
+    <section style="padding: 2rem; text-align: center;">
+        <h1>Test Firebase Login</h1>
+        <p>Use this page to test email/password or Google login. Status will update below.</p>
+        
+        <!-- Login Modal (hidden by default) -->
+        <div id="login-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border: 1px solid #ccc; z-index: 1001;">
+            <h2>Login</h2>
+            <input type="email" id="email" placeholder="Email" aria-label="Enter your email" required>
+            <input type="password" id="password" placeholder="Password" aria-label="Enter your password" required>
+            <button id="sign-in-btn" aria-label="Sign in with email and password">Sign In</button>
+            <button id="google-sign-in-btn" aria-label="Sign in with Google">Sign In with Google</button>
+            <button id="sign-up-btn" aria-label="Sign up with email and password">Sign Up</button>
+            <button id="close-modal" aria-label="Close login modal">Close</button>
+        </div>
+
+        <!-- Logout Button (hidden initially) -->
+        <button id="logout-btn" style="display: none;" aria-label="Logout">Logout</button>
+
+        <!-- Status Display -->
+        <p id="status" aria-live="polite">Status: Not logged in.</p>
+    </section>
+
+    <!-- Reused Footer from homepage -->
+    <footer>
+        © 2025 Drawmatinc. All rights reserved. <a href="#">Privacy Policy</a> | <a href="#">Contact Us</a>
+    </footer>
+
+    <script src="jdthomepage.js"></script> <!-- Reuse homepage JS for menu toggle -->
+    <script type="module">
+        // Firebase Initialization (your provided config)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBH64M5kS3pxST5OGFXq6V--qSFiGUGazk",
+            authDomain: "drawmatinc-site.firebaseapp.com",
+            projectId: "drawmatinc-site",
+            storageBucket: "drawmatinc-site.firebasestorage.app",
+            messagingSenderId: "681314816123",
+            appId: "1:681314816123:web:16646a29cb16508f5652de",
+            measurementId: "G-41TKB9KLNQ"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // Elements
+        const loginBtn = document.getElementById('login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const modal = document.getElementById('login-modal');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const signInBtn = document.getElementById('sign-in-btn');
+        const googleSignInBtn = document.getElementById('google-sign-in-btn');
+        const signUpBtn = document.getElementById('sign-up-btn');
+        const closeModal = document.getElementById('close-modal');
+        const status = document.getElementById('status');
+
+        // Show/Hide Modal
+        loginBtn.addEventListener('click', () => modal.style.display = 'block');
+        closeModal.addEventListener('click', () => modal.style.display = 'none');
+
+        // Auth State Listener
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                status.textContent = `Status: Logged in as ${user.email}`;
+                loginBtn.style.display = 'none';
+                logoutBtn.style.display = 'block';
+            } else {
+                status.textContent = 'Status: Not logged in.';
+                loginBtn.style.display = 'block';
+                logoutBtn.style.display = 'none';
+            }
+        });
+
+        // Sign In with Email/Password
+        signInBtn.addEventListener('click', () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            if (!email || !password) {
+                alert('Please enter email and password.');
+                return;
+            }
+            signInWithEmailAndPassword(auth, email, password)
+                .then(() => {
+                    modal.style.display = 'none';
+                })
+                .catch((error) => {
+                    alert(`Error: ${error.message}`);
+                });
+        });
+
+        // Sign Up with Email/Password
+        signUpBtn.addEventListener('click', () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            if (!email || !password) {
+                alert('Please enter email and password.');
+                return;
+            }
+            createUserWithEmailAndPassword(auth, email, password)
+                .then(() => {
+                    modal.style.display = 'none';
+                })
+                .catch((error) => {
+                    alert(`Error: ${error.message}`);
+                });
+        });
+
+        // Google Sign In
+        googleSignInBtn.addEventListener('click', () => {
+            const provider = new GoogleAuthProvider();
+            signInWithPopup(auth, provider)
+                .then(() => {
+                    modal.style.display = 'none';
+                })
+                .catch((error) => {
+                    alert(`Error: ${error.message}`);
+                });
+        });
+
+        // Logout
+        logoutBtn.addEventListener('click', () => {
+            signOut(auth)
+                .then(() => {})
+                .catch((error) => {
+                    alert(`Error: ${error.message}`);
+                });
+        });
+    </script>
+</body>
+</html>
