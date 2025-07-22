@@ -26,7 +26,7 @@
     <!-- Main Content: Login Test Area -->
     <section style="padding: 2rem; text-align: center;">
         <h1>Test Firebase Login</h1>
-        <p>Use this page to test email/password or Google login. Status will update below.</p>
+        <p>Use this page to test email/password or Google login. Status will update below. Check console (F12) for detailed errors.</p>
         
         <!-- Login Modal (hidden by default) -->
         <div id="login-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border: 1px solid #ccc; z-index: 1001;">
@@ -53,7 +53,7 @@
 
     <script src="jdthomepage.js"></script> <!-- Reuse homepage JS for menu toggle -->
     <script type="module">
-        // Firebase Initialization (your provided config)
+        // Firebase Initialization (redownload your config from console if needed)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 
@@ -99,12 +99,12 @@
             }
         });
 
-        // Sign In with Email/Password
+        // Sign In with Email/Password (updated logging)
         signInBtn.addEventListener('click', () => {
-            const email = emailInput.value;
+            const email = emailInput.value.trim();
             const password = passwordInput.value;
             if (!email || !password) {
-                alert('Please enter email and password.');
+                alert('Please enter a valid email and password.');
                 return;
             }
             signInWithEmailAndPassword(auth, email, password)
@@ -112,28 +112,30 @@
                     modal.style.display = 'none';
                 })
                 .catch((error) => {
-                    alert(`Error: ${error.message}`);
+                    console.error('Full Firebase Error:', error); // Log to console for details
+                    alert(`Error: ${error.code} - ${error.message}`); // More informative alert
                 });
         });
 
-        // Sign Up with Email/Password
+        // Sign Up with Email/Password (updated logging)
         signUpBtn.addEventListener('click', () => {
-            const email = emailInput.value;
+            const email = emailInput.value.trim();
             const password = passwordInput.value;
             if (!email || !password) {
-                alert('Please enter email and password.');
+                alert('Please enter a valid email and password.');
                 return;
             }
-            createUserWithEmailAndPassword(auth, email, password)
+            createUserWithEmailAndPassword, email, password)
                 .then(() => {
                     modal.style.display = 'none';
                 })
                 .catch((error) => {
-                    alert(`Error: ${error.message}`);
+                    console.error('Full error:', error);
+                    alert(`Error: ${error.code} - ${error.message}`);
                 });
         });
 
-        // Google Sign In
+        // Google Sign In (updated logging)
         googleSignInBtn.addEventListener('click', () => {
             const provider = new GoogleAuthProvider();
             signInWithPopup(auth, provider)
@@ -141,16 +143,18 @@
                     modal.style.display = 'none';
                 })
                 .catch((error) => {
-                    alert(`Error: ${error.message}`);
+                    console.error('Full error:', error);
+                    alert(`Error: ${error.code} - ${error.message}`);
                 });
         });
 
-        // Logout
+        // Logout (updated logging)
         logoutBtn.addEventListener('click', () => {
             signOut(auth)
                 .then(() => {})
                 .catch((error) => {
-                    alert(`Error: ${error.message}`);
+                    console.error('Full error:', error);
+                    alert(`Error: ${error.code} - ${error.message}`);
                 });
         });
     </script>
