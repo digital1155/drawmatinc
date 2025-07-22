@@ -42,8 +42,12 @@
         <!-- Logout Button (hidden initially) -->
         <button id="logout-btn" style="display: none;" aria-label="Logout">Logout</button>
 
+        <!-- Clear Storage Button for Testing -->
+        <button id="clear-storage-btn" aria-label="Clear browser storage for testing">Clear Storage (Test Fix)</button>
+
         <!-- Status Display -->
         <p id="status" aria-live="polite">Status: Not logged in.</p>
+        <p id="error-status" aria-live="assertive" style="color: red;"></p> <!-- For error messages -->
     </section>
 
     <!-- Reused Footer from homepage -->
@@ -53,9 +57,9 @@
 
     <script src="jdthomepage.js"></script> <!-- Reuse homepage JS for menu toggle -->
     <script type="module">
-        // Firebase Initialization (redownload your config from console if needed)
+        // Firebase Initialization (your config)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, browserSessionPersistence, setPersistence } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBH64M5kS3pxST5OGFXq6V--qSFiGUGazk",
@@ -70,6 +74,11 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
+        // Set to sessionStorage persistence to avoid localStorage issues
+        setPersistence(auth, browserSessionPersistence)
+            .then(() => console.log('Persistence set to sessionStorage'))
+            .catch((error) => console.error('Persistence error:', error));
+
         // Elements
         const loginBtn = document.getElementById('login-btn');
         const logoutBtn = document.getElementById('logout-btn');
@@ -81,15 +90,26 @@
         const signUpBtn = document.getElementById('sign-up-btn');
         const closeModal = document.getElementById('close-modal');
         const status = document.getElementById('status');
+        const errorStatus = document.getElementById('error-status');
+        const clearStorageBtn = document.getElementById('clear-storage-btn');
 
         // Show/Hide Modal
         loginBtn.addEventListener('click', () => modal.style.display = 'block');
         closeModal.addEventListener('click', () => modal.style.display = 'none');
 
+        // Clear Storage Button (for testing)
+        clearStorageBtn.addEventListener('click', () => {
+            localStorage.clear();
+            sessionStorage.clear();
+            alert('Storage cleared. Reload the page and try login again.');
+            location.reload();
+        });
+
         // Auth State Listener
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 status.textContent = `Status: Logged in as ${user.email}`;
+                errorStatus.textContent = '';
                 loginBtn.style.display = 'none';
                 logoutBtn.style.display = 'block';
             } else {
@@ -99,62 +119,67 @@
             }
         });
 
-        // Sign In with Email/Password (updated logging)
+        // Sign In with Email/Password
         signInBtn.addEventListener('click', () => {
             const email = emailInput.value.trim();
             const password = passwordInput.value;
             if (!email || !password) {
-                alert('Please enter a valid email and password.');
+                errorStatus.textContent = 'Error: Please enter a valid email and password.';
                 return;
             }
             signInWithEmailAndPassword(auth, email, password)
                 .then(() => {
                     modal.style.display = 'none';
+                    errorStatus.textContent = '';
                 })
                 .catch((error) => {
-                    console.error('Full Firebase Error:', error); // Log to console for details
-                    alert(`Error: ${error.code} - ${error.message}`); // More informative alert
+                    console.dir('Full Firebase Error:', error); // Detailed console log
+                    errorStatus.textContent = `Error: ${error.code} - ${error.message}`;
                 });
         });
 
-        // Sign Up with Email/Password (updated logging)
+        // Sign Up with Email/Password
         signUpBtn.addEventListener('click', () => {
             const email = emailInput.value.trim();
             const password = passwordInput.value;
             if (!email || !password) {
-                alert('Please enter a valid email and password.');
+                errorStatus.textContent = 'Error: Please enter a valid email and password.';
                 return;
             }
-            createUserWithEmailAndPassword, email, password)
+            createUserWithEmailAndPassword(auth, email, password)
                 .then(() => {
                     modal.style.display = 'none';
+                    errorStatus.textContent = '';
                 })
                 .catch((error) => {
-                    console.error('Full error:', error);
-                    alert(`Error: ${error.code} - ${error.message}`);
+                    console.dir('Full error:', error);
+                    errorStatus.textContent = `Error: ${error.code} - ${error.message}`;
                 });
         });
 
-        // Google Sign In (updated logging)
+        // Google Sign In
         googleSignInBtn.addEventListener('click', () => {
             const provider = new GoogleAuthProvider();
             signInWithPopup(auth, provider)
                 .then(() => {
                     modal.style.display = 'none';
+                    errorStatus.textContent = '';
                 })
                 .catch((error) => {
-                    console.error('Full error:', error);
-                    alert(`Error: ${error.code} - ${error.message}`);
+                    console.dir('Full error:', error);
+                    errorStatus.textContent = `Error: ${error.code} - ${error.message}`;
                 });
         });
 
-        // Logout (updated logging)
+        // Logout
         logoutBtn.addEventListener('click', () => {
             signOut(auth)
-                .then(() => {})
+                .then(() => {
+                    errorStatus.textContent = '';
+                })
                 .catch((error) => {
-                    console.error('Full error:', error);
-                    alert(`Error: ${error.code} - ${error.message}`);
+                    console.dir('Full error:', error);
+                    errorStatus.textContent = `Error: ${error.code} - ${error.message}`;
                 });
         });
     </script>
