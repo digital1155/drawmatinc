@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Drawmatinc Login Test Page</title>
     <link rel="stylesheet" href="dthomepage.css"> <!-- Reuse homepage CSS for consistency and mobile responsiveness -->
-    <!-- Firebase SDKs (modular v10.12.5, current as of July 23, 2025) -->
+    <!-- Firebase SDKs (modular v10.12.5) -->
     <script type="module" src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js"></script>
 </head>
@@ -59,7 +59,7 @@
     <script type="module">
         // Firebase Initialization (your config, verified as of July 23, 2025)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, noPersistence, setPersistence } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, inMemoryPersistence, setPersistence } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBH64M5kS3pxST5OGFXq6V--qSFiGUGazk",
@@ -74,9 +74,9 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
-        // Set to NO persistence to bypass all storage-related errors (change to browserSessionPersistence once fixed)
-        setPersistence(auth, noPersistence)
-            .then(() => console.log('Persistence set to NONE for testing—no storage used'))
+        // Set to inMemoryPersistence to bypass storage errors (in-memory only, cleared on refresh—change to browserSessionPersistence once fixed)
+        setPersistence(auth, inMemoryPersistence)
+            .then(() => console.log('Persistence set to inMemoryPersistence for testing—no storage used'))
             .catch((error) => {
                 console.error('Persistence setup error:', error);
                 document.getElementById('error-status').textContent = `Persistence failed: ${error.message} - Try without persistence.`;
@@ -105,7 +105,7 @@
             modal.style.display = 'none';
         });
 
-        // Clear Storage Button (for testing, even with no persistence)
+        // Clear Storage Button (for testing, even with in-memory persistence)
         clearStorageBtn.addEventListener('click', () => {
             localStorage.clear();
             sessionStorage.clear();
