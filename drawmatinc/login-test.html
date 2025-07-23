@@ -57,18 +57,18 @@
 
     <script src="jdthomepage.js"></script> <!-- Reuse homepage JS for menu toggle -->
     <script type="module">
-        // Firebase Initialization (your config, verified as of July 23, 2025)
+        // Firebase Initialization (updated config you provided, focused on Auth—no Analytics needed)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, inMemoryPersistence, setPersistence } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 
         const firebaseConfig = {
-            apiKey: "AIzaSyBH64M5kS3pxST5OGFXq6V--qSFiGUGazk",
-            authDomain: "drawmatinc-site.firebaseapp.com",
-            projectId: "drawmatinc-site",
-            storageBucket: "drawmatinc-site.appspot.com",
-            messagingSenderId: "681314816123",
-            appId: "1:681314816123:web:16646a29cb16508f5652de",
-            measurementId: "G-41TKB9KLNQ"
+          apiKey: "AIzaSyDwhR3jZhAIn4SaeqmtdvCKRr8FIkS3sic",
+          authDomain: "drawmatinc-site.firebaseapp.com",
+          projectId: "drawmatinc-site",
+          storageBucket: "drawmatinc-site.firebasestorage.app",
+          messagingSenderId: "681314816123",
+          appId: "1:681314816123:web:38f49f1d48eb7d5d5652de",
+          measurementId: "G-ME9CRT9EG0"
         };
 
         const app = initializeApp(firebaseConfig);
